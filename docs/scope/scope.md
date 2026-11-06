@@ -56,7 +56,7 @@ Define local SQLite schemas and remote entities for students, semesters, courses
   - [x] Domain logic for virtual recurrence, attendance 7 day expiry, and assignment progress, satisfies AC-4, AC-5, AC-6, AC-7
   - [x] Offline sync outbox queue with dead letter transitions and Last Write Wins comparator, satisfies AC-8, AC-9
   - [x] Remote Supabase PostgreSQL schema migrations and Row Level Security policies, satisfies AC-2, AC-10
-- [ ] Verify it: `/check verify core data model`
+- [x] Verify it: `/check verify core data model`
 - [ ] Test it: `/test core data model`
       Spec [0002](../specs/0002-core-data-model.md) · code in `src/db/` and `src/lib/`
 
