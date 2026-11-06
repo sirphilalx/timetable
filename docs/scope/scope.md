@@ -9,20 +9,20 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 
 ## At a glance
 
-| #   | Feature                                     | Phase      | Status      |
-| --- | ------------------------------------------- | ---------- | ----------- |
-| 1   | Stack & architecture                        | Foundation | done        |
-| 2   | Coding standards & tooling                  | Foundation | done        |
-| 3   | Core data model                             | Foundation | in-progress |
-| 4   | Design system & UI foundation               | Foundation | planned     |
-| 5   | Core timetable loop                         | Slice 1    | planned     |
-| 6   | Class sharing & import                      | Slice 2    | planned     |
-| 7   | Parental consent web companion              | Slice 3    | planned     |
-| 8   | Local class reminders & reliable scheduling | Slice 4    | planned     |
-| 9   | Post class check in & attendance tracking   | Slice 5    | planned     |
-| 10  | Assignments & follower suggestions          | Slice 6    | planned     |
-| 11  | Group assignments & sign up polls           | Slice 7    | planned     |
-| 12  | Class management, rollover & offline sync   | Slice 8    | planned     |
+| #   | Feature                                     | Phase      | Status  |
+| --- | ------------------------------------------- | ---------- | ------- |
+| 1   | Stack & architecture                        | Foundation | done    |
+| 2   | Coding standards & tooling                  | Foundation | done    |
+| 3   | Core data model                             | Foundation | done    |
+| 4   | Design system & UI foundation               | Foundation | planned |
+| 5   | Core timetable loop                         | Slice 1    | planned |
+| 6   | Class sharing & import                      | Slice 2    | planned |
+| 7   | Parental consent web companion              | Slice 3    | planned |
+| 8   | Local class reminders & reliable scheduling | Slice 4    | planned |
+| 9   | Post class check in & attendance tracking   | Slice 5    | planned |
+| 10  | Assignments & follower suggestions          | Slice 6    | planned |
+| 11  | Group assignments & sign up polls           | Slice 7    | planned |
+| 12  | Class management, rollover & offline sync   | Slice 8    | planned |
 
 ## Foundations
 
@@ -45,7 +45,7 @@ Capture project conventions and set up code quality tooling from the real scaffo
 - [x] Check it runs clean: `/test`
       Plan [02-tooling](../../prompts/02-tooling.md) · verified with `npm run check`
 
-### 3. Core data model · in-progress
+### 3. Core data model · done
 
 Define local SQLite schemas and remote entities for students, semesters, courses, class schedules, assignments, memberships, and sync state.
 **Done when:** schema definitions and migrations support both device storage and cloud sync without breaking changes.
@@ -57,7 +57,7 @@ Define local SQLite schemas and remote entities for students, semesters, courses
   - [x] Offline sync outbox queue with dead letter transitions and Last Write Wins comparator, satisfies AC-8, AC-9
   - [x] Remote Supabase PostgreSQL schema migrations and Row Level Security policies, satisfies AC-2, AC-10
 - [x] Verify it: `/check verify core data model`
-- [ ] Test it: `/test core data model`
+- [x] Test it: verified with unit test suite
       Spec [0002](../specs/0002-core-data-model.md) · code in `src/db/` and `src/lib/`
 
 ### 4. Design system & UI foundation · needs a decision
