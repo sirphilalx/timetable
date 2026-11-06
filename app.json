@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "TT",
+    "slug": "tt",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./logo/Logo-light.png",
+    "scheme": "tt",
+    "userInterfaceStyle": "automatic",
+    "jsEngine": "hermes",
+    "splash": {
+      "image": "./logo/Logo-light.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0F172A"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.tt.app"
+    },
+    "android": {
+      "package": "com.tt.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./logo/Logo-light.png",
+        "backgroundColor": "#0F172A"
+      },
+      "permissions": [
+        "SCHEDULE_EXACT_ALARM",
+        "USE_EXACT_ALARM",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-sqlite"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

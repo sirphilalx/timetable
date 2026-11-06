@@ -11,7 +11,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 
 | # | Feature | Phase | Status |
 |---|---------|-------|--------|
-| 1 | Stack & architecture | Foundation | in-progress |
+| 1 | Stack & architecture | Foundation | done |
 | 2 | Coding standards & tooling | Foundation | in-progress |
 | 3 | Core data model | Foundation | planned |
 | 4 | Design system & UI foundation | Foundation | planned |
@@ -26,12 +26,12 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 
 ## Foundations
 
-### 1. Stack & architecture · in-progress
+### 1. Stack & architecture · done
 Lock in Expo with React Native as chosen, decide the local database and backend sync service, and scaffold a runnable project.
 **Done when:** the stack is recorded in a spec and the Expo scaffold boots locally on iOS and Android simulators and passes build.
 - [x] Decide the stack (spec): `/architect stack & architecture`
-- [ ] Scaffold from the decision: `/develop stack & architecture`
-Spec [0001](../specs/0001-stack-architecture.md) · code (filled by /develop)
+- [x] Scaffold from the decision: `/develop stack & architecture`
+Spec [0001](../specs/0001-stack-architecture.md) · code in `src/`
 
 ### 2. Coding standards & tooling · in-progress
 Capture project conventions and set up code quality tooling from the real scaffolded project.
