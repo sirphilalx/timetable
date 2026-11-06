@@ -8,7 +8,7 @@ export const syncOutbox = sqliteTable("sync_outbox", {
   payload: text("payload").notNull(),
   attempts: integer("attempts").notNull().default(0),
   lastError: text("last_error"),
-  createdAt: integer("created_at").notNull()
+  createdAt: integer("created_at").notNull(),
 });
 
 // Student account profile
@@ -21,7 +21,7 @@ export const students = sqliteTable("students", {
   isMinor: integer("is_minor").notNull().default(0),
   guardianConsentStatus: text("guardian_consent_status").notNull().default("none"),
   createdAt: integer("created_at").notNull(),
-  updatedAt: integer("updated_at").notNull()
+  updatedAt: integer("updated_at").notNull(),
 });
 
 // Academic semester
@@ -31,7 +31,7 @@ export const semesters = sqliteTable("semesters", {
   startDate: text("start_date").notNull(),
   endDate: text("end_date").notNull(),
   isCurrent: integer("is_current").notNull().default(1),
-  createdAt: integer("created_at").notNull()
+  createdAt: integer("created_at").notNull(),
 });
 
 // Registered courses
@@ -43,7 +43,7 @@ export const courses = sqliteTable("courses", {
   color: text("color").notNull().default("#2563EB"),
   lecturer: text("lecturer"),
   isArchived: integer("is_archived").notNull().default(0),
-  createdAt: integer("created_at").notNull()
+  createdAt: integer("created_at").notNull(),
 });
 
 // Recurring weekly class rules
@@ -56,7 +56,7 @@ export const classRules = sqliteTable("class_rules", {
   endTime: text("end_time").notNull(),
   venue: text("venue").notNull(),
   source: text("source").notNull().default("manual"),
-  createdAt: integer("created_at").notNull()
+  createdAt: integer("created_at").notNull(),
 });
 
 // Specific class occurrences
@@ -67,7 +67,7 @@ export const classOccurrences = sqliteTable("class_occurrences", {
   status: text("status").notNull().default("scheduled"),
   overrideTime: text("override_time"),
   overrideVenue: text("override_venue"),
-  createdAt: integer("created_at").notNull()
+  createdAt: integer("created_at").notNull(),
 });
 
 // Attendance records
@@ -76,7 +76,7 @@ export const attendance = sqliteTable("attendance", {
   occurrenceId: text("occurrence_id").notNull(),
   status: text("status").notNull().default("unknown"),
   answeredAt: integer("answered_at"),
-  createdAt: integer("created_at").notNull()
+  createdAt: integer("created_at").notNull(),
 });
 
 // Assignments
@@ -90,5 +90,5 @@ export const assignments = sqliteTable("assignments", {
   status: text("status").notNull().default("not_started"),
   source: text("source").notNull().default("manual"),
   createdAt: integer("created_at").notNull(),
-  updatedAt: integer("updated_at").notNull()
+  updatedAt: integer("updated_at").notNull(),
 });

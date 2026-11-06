@@ -10,12 +10,8 @@ export default function TodayScreen() {
         {/* Header */}
         <View className="mb-6 flex-row items-center justify-between">
           <View>
-            <Text className="text-2xl font-bold text-slate-900 dark:text-white">
-              TT Timetable
-            </Text>
-            <Text className="text-sm text-slate-500 dark:text-slate-400">
-              Today · Semester 1
-            </Text>
+            <Text className="text-2xl font-bold text-slate-900 dark:text-white">TT Timetable</Text>
+            <Text className="text-sm text-slate-500 dark:text-slate-400">Today · Semester 1</Text>
           </View>
           <View className="h-10 w-10 items-center justify-center rounded-full bg-primary">
             <Text className="text-sm font-semibold text-white">PO</Text>
@@ -35,7 +31,8 @@ export default function TodayScreen() {
             </View>
           </View>
           <Text className="mb-4 text-sm text-slate-600 dark:text-slate-300">
-            React Native with Expo SDK 52, Expo Router v4, Drizzle ORM on SQLite, and Supabase client.
+            React Native with Expo SDK 52, Expo Router v4, Drizzle ORM on SQLite, and Supabase
+            client.
           </Text>
 
           {/* Layer badges */}
@@ -70,13 +67,9 @@ export default function TodayScreen() {
             <View className="flex-1 p-5">
               <View className="mb-2 flex-row items-center justify-between">
                 <View className="rounded bg-blue-100 px-2 py-0.5 dark:bg-blue-950">
-                  <Text className="text-xs font-semibold text-course-blue">
-                    MTH 301
-                  </Text>
+                  <Text className="text-xs font-semibold text-course-blue">MTH 301</Text>
                 </View>
-                <Text className="text-xs font-medium text-status-soon">
-                  In 35 mins
-                </Text>
+                <Text className="text-xs font-medium text-status-soon">In 35 mins</Text>
               </View>
               <Text className="mb-1 text-lg font-bold text-slate-900 dark:text-white">
                 Abstract Algebra

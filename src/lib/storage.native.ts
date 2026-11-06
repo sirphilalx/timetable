@@ -59,5 +59,5 @@ export const platformStorage = {
     } catch {
       // Deletion error fallback
     }
-  }
+  },
 };

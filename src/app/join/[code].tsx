@@ -27,15 +27,21 @@ export default function JoinClassScreen() {
           <View className="mb-6 rounded-xl bg-slate-50 p-4 dark:bg-slate-800/50">
             <View className="flex-row justify-between py-1.5 border-b border-slate-200 dark:border-slate-700">
               <Text className="text-sm text-slate-500 dark:text-slate-400">Owner</Text>
-              <Text className="text-sm font-medium text-slate-900 dark:text-white">Chioma O. (Course Rep)</Text>
+              <Text className="text-sm font-medium text-slate-900 dark:text-white">
+                Chioma O. (Course Rep)
+              </Text>
             </View>
             <View className="flex-row justify-between py-1.5 border-b border-slate-200 dark:border-slate-700">
               <Text className="text-sm text-slate-500 dark:text-slate-400">Class members</Text>
-              <Text className="text-sm font-medium text-slate-900 dark:text-white">142 students</Text>
+              <Text className="text-sm font-medium text-slate-900 dark:text-white">
+                142 students
+              </Text>
             </View>
             <View className="flex-row justify-between py-1.5">
               <Text className="text-sm text-slate-500 dark:text-slate-400">Registered courses</Text>
-              <Text className="text-sm font-medium text-slate-900 dark:text-white">8 courses (14 lectures/week)</Text>
+              <Text className="text-sm font-medium text-slate-900 dark:text-white">
+                8 courses (14 lectures/week)
+              </Text>
             </View>
           </View>
 

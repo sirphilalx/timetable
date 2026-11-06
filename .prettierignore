@@ -1,0 +1,11 @@
+node_modules
+dist
+.expo
+.agents
+Idea
+drizzle
+package-lock.json
+*.png
+*.jpeg
+*.jpg
+*.sql

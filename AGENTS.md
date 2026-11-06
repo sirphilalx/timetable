@@ -14,6 +14,8 @@ npx expo run:android        # run native development build on Android device or 
 npx expo run:ios            # run native development build on iOS simulator
 npx expo export -p web      # export static web bundle for Cloudflare Pages
 npx expo lint               # lint code
+npm run format              # format codebase with Prettier
+npm run check               # run typecheck, lint, and format checks together
 npx tsc --noEmit            # type check TypeScript without emitting files
 npx expo-doctor             # diagnose dependency and config issues
 npx expo install --fix      # fix incompatible package versions
@@ -73,6 +75,7 @@ For a new feature or a change across several files. Small fixes and questions sk
 ## Building from designs
 
 Designs and style guides are located in the repository:
+
 - `Foundations and Style Guide/`: Typography, Spacing radius and elevation, Colour, Accessibility, Icons, and Principles.
 - `Components_design/`: Actions, Inputs, Cards, Navigation, Feedback and overlays, Brand, and Indicators.
 - `Screens/`: 100 numbered screens covering onboarding, Today, Classes, Assignments, Check ins, Settings, and Sharing.
@@ -104,9 +107,11 @@ End every piece of work that changes code with this report. Use these headings i
 ## Specs & Plans
 
 Architectural specifications live in `docs/specs/`. Format: `docs/specs/NNNN-title.md`.
+
 - [0001. Stack and Architecture](docs/specs/0001-stack-architecture.md)
 
 Feature build plans live in `prompts/`. Format: `prompts/NN-feature-name.md` (derived from `prompts/TEMPLATE.md`).
+
 - Active plans hold `Status: draft` or `Status: approved`.
 - Completed plans hold `Status: done` with a `## Result` summary, recording build history.
 

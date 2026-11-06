@@ -14,9 +14,9 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 2,
-      staleTime: 1000 * 60 * 5
-    }
-  }
+      staleTime: 1000 * 60 * 5,
+    },
+  },
 });
 
 export default function RootLayout() {
@@ -33,7 +33,7 @@ export default function RootLayout() {
           headerStyle: { backgroundColor: "#0F172A" },
           headerTintColor: "#FFFFFF",
           headerTitleStyle: { fontWeight: "600" },
-          contentStyle: { backgroundColor: "#F8FAFC" }
+          contentStyle: { backgroundColor: "#F8FAFC" },
         }}
       >
         <Stack.Screen name="index" options={{ title: "TT Today", headerShown: false }} />
