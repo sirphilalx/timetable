@@ -61,13 +61,14 @@ For a new feature or a change across several files. Small fixes and questions sk
 
 1. **Understand**: Read the code involved, the design assets in `Screens/`, `Components_design/`, and `Foundations and Style Guide/`, and relevant specs in `docs/specs/`. Load matching skills (`expo-router`, `supabase`). Do not write version specific APIs from memory.
 2. **Ask**: If a real decision is unclear (scope, visible behavior, data shape), ask in the question panel, batching questions into one round.
-3. **Plan**: Architecture decisions go to `docs/specs/` via `/architect`. Feature build milestones are tracked in `docs/scope/scope.md`.
-4. **Stop and wait**: Write no application code until the user approves the spec or build plan.
-5. **Build**: Build step by step through vertical slices connecting data, business logic, and UI. If a step turns out wrong, stop and explain instead of redesigning silently.
+3. **Plan**: Architecture decisions go to `docs/specs/` via `/architect`. For execution, copy `prompts/TEMPLATE.md` to `prompts/NN-feature-name.md` (numbered sequentially, e.g. `01-scaffold-stack.md`) and fill in Goal, Decisions, Out of scope, Steps, Verification, and AGENTS.md updates. High level feature status remains tracked in `docs/scope/scope.md`.
+4. **Stop and wait**: Write no application code until the user approves the feature plan in `prompts/NN-feature-name.md`. Ask for approval in the question panel (approve or request changes). On approval, set `Status: approved`.
+5. **Build**: Build step by step through vertical slices connecting data, business logic, and UI. Each step must leave the application working. If a step turns out wrong, stop and explain instead of redesigning silently.
 6. **Close out**:
    - Run verification checks and give the report described under Reporting.
+   - Add a short `## Result` to the plan and set `Status: done`.
    - Advance the feature milestone in `docs/scope/scope.md`.
-   - Update this file: put each lasting decision in the section it belongs to.
+   - Update this file: apply lasting decisions from the plan's `## AGENTS.md updates` section to the appropriate section here.
 
 ## Building from designs
 
@@ -100,10 +101,14 @@ End every piece of work that changes code with this report. Use these headings i
 - Local alarms and notifications are scheduled with Android exact alarm permission checks and battery optimization guidance.
 - Static web export passes `npx expo export -p web` with zero native library compilation errors.
 
-## Specs
+## Specs & Plans
 
-Stored in `docs/specs/`. Format: `docs/specs/NNNN-title.md`.
+Architectural specifications live in `docs/specs/`. Format: `docs/specs/NNNN-title.md`.
 - [0001. Stack and Architecture](docs/specs/0001-stack-architecture.md)
+
+Feature build plans live in `prompts/`. Format: `prompts/NN-feature-name.md` (derived from `prompts/TEMPLATE.md`).
+- Active plans hold `Status: draft` or `Status: approved`.
+- Completed plans hold `Status: done` with a `## Result` summary, recording build history.
 
 ## Git
 
