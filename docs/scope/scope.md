@@ -9,20 +9,20 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 
 ## At a glance
 
-| #   | Feature                                     | Phase      | Status  |
-| --- | ------------------------------------------- | ---------- | ------- |
-| 1   | Stack & architecture                        | Foundation | done    |
-| 2   | Coding standards & tooling                  | Foundation | done    |
-| 3   | Core data model                             | Foundation | done    |
-| 4   | Design system & UI foundation               | Foundation | planned |
-| 5   | Core timetable loop                         | Slice 1    | planned |
-| 6   | Class sharing & import                      | Slice 2    | planned |
-| 7   | Parental consent web companion              | Slice 3    | planned |
-| 8   | Local class reminders & reliable scheduling | Slice 4    | planned |
-| 9   | Post class check in & attendance tracking   | Slice 5    | planned |
-| 10  | Assignments & follower suggestions          | Slice 6    | planned |
-| 11  | Group assignments & sign up polls           | Slice 7    | planned |
-| 12  | Class management, rollover & offline sync   | Slice 8    | planned |
+| #   | Feature                                     | Phase      | Status      |
+| --- | ------------------------------------------- | ---------- | ----------- |
+| 1   | Stack & architecture                        | Foundation | done        |
+| 2   | Coding standards & tooling                  | Foundation | done        |
+| 3   | Core data model                             | Foundation | done        |
+| 4   | Design system & UI foundation               | Foundation | in-progress |
+| 5   | Core timetable loop                         | Slice 1    | planned     |
+| 6   | Class sharing & import                      | Slice 2    | planned     |
+| 7   | Parental consent web companion              | Slice 3    | planned     |
+| 8   | Local class reminders & reliable scheduling | Slice 4    | planned     |
+| 9   | Post class check in & attendance tracking   | Slice 5    | planned     |
+| 10  | Assignments & follower suggestions          | Slice 6    | planned     |
+| 11  | Group assignments & sign up polls           | Slice 7    | planned     |
+| 12  | Class management, rollover & offline sync   | Slice 8    | planned     |
 
 ## Foundations
 
@@ -60,12 +60,20 @@ Define local SQLite schemas and remote entities for students, semesters, courses
 - [x] Test it: verified with unit test suite
       Spec [0002](../specs/0002-core-data-model.md) · code in `src/db/` and `src/lib/`
 
-### 4. Design system & UI foundation · needs a decision
+### 4. Design system & UI foundation · in-progress
 
 Establish design tokens, typography, dark and light theme styles, and core user interface components adapted from Cadence Academy.
 **Done when:** base components render consistently across light and dark themes and meet accessibility color contrast standards.
 
-- [ ] Design it (spec): `/architect design system & UI foundation`
+- [x] Design it (spec): `/architect design system & UI foundation`
+- [x] Build it: `/develop design system & UI foundation`
+  - [x] Styling tokens and dark mode theme pipeline, satisfies AC-1, AC-4
+  - [x] Inter font loading pipeline and accessible Text wrapper, satisfies AC-2, AC-3
+  - [x] Action, input, and overlay primitives, satisfies AC-5, AC-6
+  - [x] System banners, empty states, and timetable cards, satisfies AC-7, AC-8
+- [ ] Verify it: `/check verify design system & UI foundation`
+- [ ] Test it: `/test design system & UI foundation`
+      Spec [0003](../specs/0003-design-system-ui-foundation.md) · code in `src/components/`, `src/theme/`, and `src/app/ui-showcase.tsx`
 
 ## Slice 1: Core timetable loop
 
