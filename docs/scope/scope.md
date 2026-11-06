@@ -73,7 +73,7 @@ Establish design tokens, typography, dark and light theme styles, and core user 
   - [x] System banners, empty states, and timetable cards, satisfies AC-7, AC-8
 - [ ] Verify it: `/check verify design system & UI foundation`
 - [ ] Test it: `/test design system & UI foundation`
-      Spec [0003](../specs/0003-design-system-ui-foundation.md) · code in `src/components/`, `src/theme/`, and `src/app/ui-showcase.tsx`
+      Spec [0003](../specs/0003-design-system-ui-foundation/index.md) · code in `src/components/`, `src/theme/`, and `src/app/ui-showcase.tsx`
 
 ## Slice 1: Core timetable loop
 

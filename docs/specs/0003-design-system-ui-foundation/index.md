@@ -7,14 +7,6 @@
 
 This specification establishes the Cadence Academy design tokens and user interface foundation for the TT student timetable mobile application. It translates the design guide assets and globals.css into NativeWind Tailwind configuration, typography scales, light and dark theme modes, and accessible base components. By locking in reusable primitives and timetable cards early, all subsequent feature slices can build clean screens that render reliably on budget Nigerian Android devices and modern iPhones alike.
 
-## Context
-
-TT serves Nigerian university students running mid range and budget Android devices such as Tecno, Infinix, Itel, and Samsung A series, alongside iOS users. These students frequently use their phones outdoors under strong sunlight, between lecture theatres with limited mobile data, and across variable network connectivity. A student checking where their next lecture is needs to know within three seconds. Visual clarity, instant readability, dependable contrast, and smooth rendering with low memory usage are paramount.
-
-Without a central design system and component foundation, feature screens will inevitably invent conflicting styles, hardcode raw color hex codes, break touch target minimums, and cause dark theme flashes during app launch. Android devices with customized vendor operating systems also expose extreme text scaling preferences that break unconstrained layouts. We need a single source of truth for design tokens, typography rules, color theme switching, and reusable components that respect accessibility and device memory constraints.
-
-The project design assets in the repository define complete specifications across Foundations, Components, and the TT Design Brief. These assets establish an indigo accent, slate neutral backgrounds, eight distinct course colors, a four pixel spacing scale, Inter typography, and strict color usage rules. Red is reserved strictly for errors, clashes, and overdue items; every status indicator must pair color with clear wording. This specification standardizes those requirements into a runnable foundation.
-
 ## Requirements
 
 **User stories**:
@@ -35,53 +27,6 @@ The project design assets in the repository define complete specifications acros
 - **AC-7**: System feedback primitives OfflineBanner (in flow banner docked below the status bar, listening to network connectivity and internet reachability) and EmptyState (centered illustration, title, description, and action button) render consistently across all views.
 - **AC-8**: Domain specific timetable primitives ClassCard (neutral card with 4px left course color stripe, prominent 18px time and venue, course code, lecturer meta, tap action, and faded past state) and AttendancePill (status badge displaying both an icon and plain text label) match design assets exactly.
 
-## Options considered
-
-### Option 1: NativeWind v4 with Class Variance Authority and custom accessible primitives
-
-Adapt the provided globals.css directly into NativeWind v4 using Tailwind CSS variables, Class Variance Authority (cva) for type safe component variants, clsx with tailwind-merge for className composition, and custom React Native primitives styled to match Figma specifications.
-
-**Pros**:
-
-- Zero additional heavy third party component library dependencies, keeping memory consumption minimal on 2GB RAM Android phones.
-- Exact one to one fidelity with the Cadence Academy design tokens, TT Design Brief, and provided globals.css.
-- First class support for NativeWind v4 className styling across both native mobile and web export targets.
-- Full control over accessibility props, touch target padding, and dynamic font scale limits.
-
-**Cons**:
-
-- Requires writing and maintaining our own primitive component files (Button, Input, Card, Sheet, Dialog) rather than adopting an off the shelf UI kit.
-
-### Option 2: Prebuilt React Native Reusables library (shadcn UI for React Native)
-
-Install the full React Native Reusables component library which ports shadcn UI primitives to React Native using Radix primitives and NativeWind.
-
-**Pros**:
-
-- Provides dozens of prebuilt component templates that can be copied directly into the project.
-- Familiar component API for web developers who have used shadcn UI.
-
-**Cons**:
-
-- Introduces extra dependencies and heavier component abstractions that add overhead on budget Android devices.
-- Uses default web centric shadcn naming and token structures that conflict with the Cadence Academy tokens and custom TT design assets.
-- Requires customizing and overriding numerous styles to match the exact TT corner radii, course stripes, and timetable card layouts.
-
-### Option 3: Standard React Native StyleSheet objects with a custom ThemeContext
-
-Bypass NativeWind utility classes and implement the design system using pure React Native StyleSheet.create objects, passing dynamic theme colors via a React Context.
-
-**Pros**:
-
-- Does not rely on Tailwind CSS compilers, Metro CSS interop plugins, or Babel post processors.
-- Fast runtime performance using native style IDs.
-
-**Cons**:
-
-- Breaks the existing NativeWind v4 and Tailwind setup already established in AGENTS.md and 0001-stack-architecture.md.
-- High boilerplate code for responsive wrapping, variant combinations, and dark mode branching across every component.
-- Slows down developer velocity on subsequent feature slices compared to utility classes.
-
 ## Decision
 
 **Chosen option**: Option 1: NativeWind v4 with Class Variance Authority and custom accessible primitives
@@ -89,12 +34,6 @@ Bypass NativeWind utility classes and implement the design system using pure Rea
 We choose Option 1 to achieve exact visual alignment with the design guide assets and the provided globals.css while maintaining minimal bundle and memory overhead on budget Android devices.
 
 **Implementation skills**: `expo-router` (`expo/skills`, `.agents/skills/expo-router/`)
-
-## Rationale
-
-TT has a clear design identity defined across twelve component sheets and foundation guides. It requires specific details such as four pixel course color left stripes, neutral surfaces that never tint entirely, custom 24px sheet corner radii, and tab tints that align with university faculty colors. Option 1 allows us to encode these rules directly into Tailwind tokens and lightweight primitive components.
-
-Option 2 introduces unnecessary abstraction layers and default styles that fight our design tokens. Option 3 abandons the established NativeWind configuration in our architecture. Option 1 delivers the exact design system envisioned in the TT Design Brief, supports fast composition in feature slices, and guarantees excellent performance on budget hardware.
 
 ## Feature design
 
@@ -106,19 +45,6 @@ This foundation handles local client styling and theme preferences. No relationa
 - Allowed values: `'system' | 'light' | 'dark'`
 - Default value: `'system'`
 - Resolved runtime theme: `'light' | 'dark'`
-
-**State transitions**:
-
-```
-[System Appearance] ───────────────► Resolved Theme (Light or Dark)
-         │
-         ▼
-[User Toggle in Settings]
-         │
-         ├── Select 'light' ──────► Persist 'light' ──────► Enforce Light Theme
-         ├── Select 'dark'  ──────► Persist 'dark'  ──────► Enforce Dark Theme
-         └── Select 'system'─────► Persist 'system'──────► Sync with System
-```
 
 **Typography scale matrix**:
 
@@ -185,24 +111,6 @@ The UI foundation exports components from `src/components/ui/` and `src/componen
 - Text scaling must never break critical information: the custom Text component caps scaling at 2.0 so venues, times, and course codes do not clip on budget Android devices.
 - Dark mode must maintain visual hierarchy through subtle borders (`border-line`) rather than pure black canvas inversions.
 - RootLayout must coordinate splash screen hiding with both font loading and theme preference retrieval, preventing white cold boot flashes.
-
-**Security model**:
-
-- All styling and theme preferences operate entirely on the client.
-- No sensitive user data, authentication credentials, or private identifiers are stored in styling configurations or theme state.
-- Guardian consent and age verification flows reuse the design system components without caching minor records locally before verification.
-
-**Configuration required**:
-
-- Zero new external environment variables or third party API credentials are required for the design system.
-
-**Critical test scenarios**:
-
-- Happy path: Rendering all UI foundation components (Button, Input, Card, Badge, Sheet, Dialog, OfflineBanner, ClassCard, AttendancePill) in both light and dark modes, verifying that styling, colors, and typography match Figma specifications, verifying **AC-1**, **AC-2**, **AC-5**, **AC-8**.
-- Theme switching and persistence: Toggling theme between light, dark, and system modes, restarting the app, and confirming that the chosen theme persists with zero white screen flashes on cold boot, verifying **AC-4**.
-- Accessibility and scaling: Verifying that all text elements scale cleanly up to 200 percent without truncating venues, times, or button actions on a 320px viewport, and confirming all text pairs pass WCAG AA contrast, verifying **AC-3**, **AC-5**.
-- Overlay dismiss and keyboard avoidance: Opening Sheet and Dialog components, verifying smooth backdrop dismiss, hardware back button dismiss on Android, and keyboard avoidance on input fields, verifying **AC-6**.
-- Network connectivity feedback: Toggling device airplane mode, verifying that the OfflineBanner docks immediately under the status bar without covering screen titles, and disappears when connectivity returns, verifying **AC-7**.
 
 ## Build plan
 
