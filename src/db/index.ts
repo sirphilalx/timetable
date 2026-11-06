@@ -1,2 +1,3 @@
 export * from "./schema";
-export { db } from "./client";
+export { db, runMigrations } from "./client";
+export type { Database } from "./client";

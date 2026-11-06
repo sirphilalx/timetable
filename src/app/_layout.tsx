@@ -4,6 +4,7 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import * as SplashScreen from "expo-splash-screen";
+import { runMigrations } from "@/db";
 
 // Prevent splash screen auto-hiding while initial assets and database verify
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -21,8 +22,17 @@ const queryClient = new QueryClient({
 
 export default function RootLayout() {
   useEffect(() => {
-    // Hide splash screen once mounted
-    SplashScreen.hideAsync().catch(() => {});
+    async function initialize() {
+      try {
+        await runMigrations();
+      } catch (error) {
+        console.error("Failed to run local SQLite migrations:", error);
+      } finally {
+        await SplashScreen.hideAsync().catch(() => {});
+      }
+    }
+
+    initialize();
   }, []);
 
   return (

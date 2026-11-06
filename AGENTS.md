@@ -36,10 +36,10 @@ npx eas-cli@latest <cmd>    # EAS builds, submits, and updates (use instead of b
 
 Each tool has one job. Ask before moving a responsibility to a different tool.
 
-- **Authentication**: Supabase Auth is the source of truth for accounts and sessions. Tokens are stored securely on device via Expo SecureStore on mobile (with payload chunking for Android 8 Keystore limits) and localStorage on web.
-- **Local Database & Offline Store**: `expo-sqlite` with Drizzle ORM. Local SQLite is the authoritative on device store for timetables, courses, check ins, and personal notes, ensuring full offline functionality.
-- **Remote Cloud Database & Sync**: Supabase managed PostgreSQL. Stores shared classes, class memberships, broadcast changes, and audit logs. Enforces Row Level Security (RLS) so personal records remain private.
-- **State & Mutation Queue**: TanStack Query with local SQLite `sync_outbox` table. Screen state updates optimistically; offline mutations are buffered in `sync_outbox` and retried with exponential backoff on reconnection. Conflict resolution follows Last Write Wins anchored by remote `updated_at`.
+- **Authentication**: Clerk is the source of truth for student accounts and sessions. Tokens are cached securely on device via Expo SecureStore on mobile and localStorage on web. Supabase database integrates with Clerk via JWT authentication.
+- **Local Database & Offline Store**: `expo-sqlite` with Drizzle ORM. Local SQLite is the authoritative on device store across thirteen normalized domain tables. Schedules use virtual recurrence in memory, persisting concrete occurrence rows only for relocations, cancellations, or attendance links.
+- **Remote Cloud Database & Sync**: Supabase managed PostgreSQL. Stores shared classes, class memberships, broadcast changes, and audit logs. Enforces Row Level Security (RLS) linked to Clerk user identifiers.
+- **State & Mutation Queue**: TanStack Query with local SQLite `sync_outbox` table. Screen state updates optimistically; offline mutations are buffered in `sync_outbox`, retried with exponential backoff, and dead lettered after five attempts or non retriable client errors. Conflict resolution follows Last Write Wins anchored by remote `updated_at`.
 - **Reminders & Alarms**: `expo-notifications`. Schedules local device notifications in local wall clock time with timezone offsets. Manages Android exact alarm permissions (`SCHEDULE_EXACT_ALARM`) and guides users past aggressive battery optimization on Tecno, Infinix, Itel, and Samsung devices.
 - **Styling & Design System**: NativeWind v4 configured with Cadence Academy tokens (Inter font, 4px spacing scale, indigo primary #4F46E5, dark mode #818CF8).
 - **Web Companion**: Expo Router static web export hosted on Cloudflare Pages. Serves the under 18 parent approval form and universal link landing pages with WhatsApp in app browser traversal fallbacks.
@@ -109,6 +109,7 @@ End every piece of work that changes code with this report. Use these headings i
 Architectural specifications live in `docs/specs/`. Format: `docs/specs/NNNN-title.md`.
 
 - [0001. Stack and Architecture](docs/specs/0001-stack-architecture.md)
+- [0002. Core Data Model](docs/specs/0002-core-data-model.md)
 
 Feature build plans live in `prompts/`. Format: `prompts/NN-feature-name.md` (derived from `prompts/TEMPLATE.md`).
 

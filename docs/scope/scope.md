@@ -9,20 +9,20 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 
 ## At a glance
 
-| #   | Feature                                     | Phase      | Status  |
-| --- | ------------------------------------------- | ---------- | ------- |
-| 1   | Stack & architecture                        | Foundation | done    |
-| 2   | Coding standards & tooling                  | Foundation | done    |
+| #   | Feature                                     | Phase      | Status      |
+| --- | ------------------------------------------- | ---------- | ----------- |
+| 1   | Stack & architecture                        | Foundation | done        |
+| 2   | Coding standards & tooling                  | Foundation | done        |
 | 3   | Core data model                             | Foundation | in-progress |
-| 4   | Design system & UI foundation               | Foundation | planned |
-| 5   | Core timetable loop                         | Slice 1    | planned |
-| 6   | Class sharing & import                      | Slice 2    | planned |
-| 7   | Parental consent web companion              | Slice 3    | planned |
-| 8   | Local class reminders & reliable scheduling | Slice 4    | planned |
-| 9   | Post class check in & attendance tracking   | Slice 5    | planned |
-| 10  | Assignments & follower suggestions          | Slice 6    | planned |
-| 11  | Group assignments & sign up polls           | Slice 7    | planned |
-| 12  | Class management, rollover & offline sync   | Slice 8    | planned |
+| 4   | Design system & UI foundation               | Foundation | planned     |
+| 5   | Core timetable loop                         | Slice 1    | planned     |
+| 6   | Class sharing & import                      | Slice 2    | planned     |
+| 7   | Parental consent web companion              | Slice 3    | planned     |
+| 8   | Local class reminders & reliable scheduling | Slice 4    | planned     |
+| 9   | Post class check in & attendance tracking   | Slice 5    | planned     |
+| 10  | Assignments & follower suggestions          | Slice 6    | planned     |
+| 11  | Group assignments & sign up polls           | Slice 7    | planned     |
+| 12  | Class management, rollover & offline sync   | Slice 8    | planned     |
 
 ## Foundations
 
@@ -51,14 +51,14 @@ Define local SQLite schemas and remote entities for students, semesters, courses
 **Done when:** schema definitions and migrations support both device storage and cloud sync without breaking changes.
 
 - [x] Design it (spec): `/architect core data model`
-- [ ] Build it: `/develop core data model`
-  - [ ] Local SQLite Drizzle schema and native migration runner, satisfies AC-1, AC-2, AC-3, AC-11
-  - [ ] Domain logic for virtual recurrence, attendance 7 day expiry, and assignment progress, satisfies AC-4, AC-5, AC-6, AC-7
-  - [ ] Offline sync outbox queue with dead letter transitions and Last Write Wins comparator, satisfies AC-8, AC-9
-  - [ ] Remote Supabase PostgreSQL schema migrations and Row Level Security policies, satisfies AC-2, AC-10
+- [x] Build it: `/develop core data model`
+  - [x] Local SQLite Drizzle schema and native migration runner, satisfies AC-1, AC-2, AC-3, AC-11
+  - [x] Domain logic for virtual recurrence, attendance 7 day expiry, and assignment progress, satisfies AC-4, AC-5, AC-6, AC-7
+  - [x] Offline sync outbox queue with dead letter transitions and Last Write Wins comparator, satisfies AC-8, AC-9
+  - [x] Remote Supabase PostgreSQL schema migrations and Row Level Security policies, satisfies AC-2, AC-10
 - [ ] Verify it: `/check verify core data model`
 - [ ] Test it: `/test core data model`
-      Spec [0002](../specs/0002-core-data-model.md)
+      Spec [0002](../specs/0002-core-data-model.md) · code in `src/db/` and `src/lib/`
 
 ### 4. Design system & UI foundation · needs a decision
 

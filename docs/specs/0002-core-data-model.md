@@ -1,7 +1,7 @@
 # 0002. Core Data Model
 
 **Date**: 2026-11-06
-**Status**: Proposed
+**Status**: In Progress
 
 ## Summary
 
@@ -18,12 +18,14 @@ Failing to establish a comprehensive data model at this foundation stage risks b
 ## Requirements
 
 **User stories**:
+
 - As a student, I want my timetable, attendance records, and assignments stored locally on my phone so that I can access my daily schedule and receive alarms without an internet connection.
 - As a course representative, I want to publish a master course group schedule with lecture rules and venue changes so that my classmates can follow and receive verified timetable updates.
 - As a student follower, I want to join a shared course group while keeping my personal attendance check ins, private notes, and custom tasks completely private.
 - As a student under eighteen years old, I want to generate a guardian consent link so that my parent can approve cloud account synchronization without blocking my local timetable preview.
 
 **Acceptance criteria**:
+
 - **AC-1**: Local SQLite tables and schema definitions exist in TypeScript using Drizzle ORM for thirteen core domain entities (students, guardian consents, semesters, courses, course groups, course memberships, class rules, class occurrences, attendance records, assignments, student assignment progress, assignment groups, assignment group members) and a dedicated sync outbox queue.
 - **AC-2**: All syncable domain entities generate client side UUID v4 strings for primary keys and maintain standard sync metadata (created at, updated at, deleted at, and is deleted).
 - **AC-3**: Dates are serialized as ISO 8601 calendar strings (YYYY-MM-DD), timestamps as ISO 8601 UTC strings, and daily recurring times as 24 hour HH:MM strings across local SQLite and remote PostgreSQL.
@@ -43,6 +45,7 @@ Failing to establish a comprehensive data model at this foundation stage risks b
 This option establishes thirteen relational tables in local SQLite with Drizzle ORM and mirror tables in Supabase PostgreSQL. Primary keys are client generated UUID strings. Weekly class rules generate calendar occurrences dynamically in memory, persisting concrete occurrence rows only for exceptions, relocations, or attendance records. Syncable entities include soft delete tombstones, ISO 8601 UTC timestamps, and dead letter outbox protections.
 
 **Pros**:
+
 - Client generated UUIDs eliminate key collisions and identifier remapping during offline writes.
 - Virtual recurrence with override records prevents database bloat on budget devices with two gigabytes of memory.
 - Dedicated progress tracking table allows hundreds of followers to independently track assignment completion on shared class assignments.
@@ -50,6 +53,7 @@ This option establishes thirteen relational tables in local SQLite with Drizzle 
 - Strict foreign keys maintain relational integrity across courses, schedules, and attendance.
 
 **Cons**:
+
 - Requires maintaining matching schema definitions across Drizzle SQLite and Supabase PostgreSQL.
 
 ### Option 2: Pre materialized calendar occurrences with local auto increment identifiers
@@ -57,10 +61,12 @@ This option establishes thirteen relational tables in local SQLite with Drizzle 
 This option uses standard integer auto increment primary keys in local SQLite, pre generating every individual lecture occurrence for the entire sixteen week semester upon semester creation. Cloud synchronization maintains a translation map linking local integer IDs to remote UUIDs.
 
 **Pros**:
+
 - Fast local queries using compact integer indexing in SQLite.
 - Immediate availability of all semester calendar dates without runtime recurrence expansion logic.
 
 **Cons**:
+
 - Identifier translation tables introduce significant sync complexity and failure points during offline mutations.
 - Pre generating hundreds of occurrence rows consumes unnecessary flash memory on low end phones.
 - Changing a recurring class rule requires updating dozens of pre generated future rows.
@@ -70,10 +76,12 @@ This option uses standard integer auto increment primary keys in local SQLite, p
 This option stores complete semester timetables as single serialized JSON documents inside SQLite text columns, syncing the entire document blob to Supabase on change.
 
 **Pros**:
+
 - Extremely simple initial schema with very few tables and no foreign key coordination.
 - Rapid prototyping without designing granular table structures.
 
 **Cons**:
+
 - Impossible to run efficient relational queries such as Today schedule filtering or attendance percentages without parsing large JSON strings in memory.
 - Concurrency conflicts are catastrophic because any small change overwrites the entire semester document.
 - Heavy data transfer over metered Nigerian mobile cellular connections.
@@ -107,7 +115,7 @@ The active student UUID is stored on the physical device in Expo SecureStore und
 
 1. `students`:
    - `id`: text, primary key (UUID v4)
-   - `supabase_user_id`: text, nullable (foreign key to auth.users in Supabase, unique)
+   - `clerk_user_id`: text, nullable (Clerk user identifier string e.g. user_2..., unique)
    - `display_name`: text, not null
    - `email`: text, nullable
    - `institution`: text, nullable
@@ -323,33 +331,33 @@ The active student UUID is stored on the physical device in Expo SecureStore und
 
 **API surface**:
 
-| Operation | Target Layer | Key inputs | Key outputs | Auth requirement | Key error handling |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `getTodaySchedule` | Local SQLite + virtual recurrence | `studentId: text`, `date: text` | `occurrences: array` | Local device access | Expands rules in memory, overlays stored occurrences, returns empty if semester paused |
-| `recordAttendanceCheckIn` | Local SQLite + outbox | `occurrenceId: text`, `status: text`, `notes: text` | `recordId: text` | Local device access | Materializes occurrence row if virtual, rejects updates after 7 day expiration window |
-| `joinCourseGroup` | Local SQLite + outbox | `shareCode: text`, `activeSemesterId: text` | `membershipId: text` | Supabase bearer token | Imports shared group rules and links courses to active local semester id |
-| `enqueueSyncMutation` | Local SQLite outbox | `entityType: text`, `actionType: text`, `payload: text` | `outboxId: text` | Local device access | Transactional commit with the local entity mutation |
-| `processSyncOutbox` | Background queue worker | None (reads pending `sync_outbox` rows) | `processedCount: integer` | Supabase bearer token | Exponential retry backoff on network failure, dead letters non retriable 4xx errors |
-| `syncPullChanges` | Supabase REST / RPC | `lastPulledAt: text` | `records: object` | Supabase bearer token | Ingests rows in topological dependency order to avoid foreign key failures |
-| `submitGuardianConsentWeb` | Static web route + RPC | `token: text`, `decision: text` | `success: boolean` | Public (token authenticated) | 404 on expired or invalid token, 409 if already answered |
+| Operation                  | Target Layer                      | Key inputs                                              | Key outputs               | Auth requirement             | Key error handling                                                                     |
+| :------------------------- | :-------------------------------- | :------------------------------------------------------ | :------------------------ | :--------------------------- | :------------------------------------------------------------------------------------- |
+| `getTodaySchedule`         | Local SQLite + virtual recurrence | `studentId: text`, `date: text`                         | `occurrences: array`      | Local device access          | Expands rules in memory, overlays stored occurrences, returns empty if semester paused |
+| `recordAttendanceCheckIn`  | Local SQLite + outbox             | `occurrenceId: text`, `status: text`, `notes: text`     | `recordId: text`          | Local device access          | Materializes occurrence row if virtual, rejects updates after 7 day expiration window  |
+| `joinCourseGroup`          | Local SQLite + outbox             | `shareCode: text`, `activeSemesterId: text`             | `membershipId: text`      | Supabase bearer token        | Imports shared group rules and links courses to active local semester id               |
+| `enqueueSyncMutation`      | Local SQLite outbox               | `entityType: text`, `actionType: text`, `payload: text` | `outboxId: text`          | Local device access          | Transactional commit with the local entity mutation                                    |
+| `processSyncOutbox`        | Background queue worker           | None (reads pending `sync_outbox` rows)                 | `processedCount: integer` | Supabase bearer token        | Exponential retry backoff on network failure, dead letters non retriable 4xx errors    |
+| `syncPullChanges`          | Supabase REST / RPC               | `lastPulledAt: text`                                    | `records: object`         | Supabase bearer token        | Ingests rows in topological dependency order to avoid foreign key failures             |
+| `submitGuardianConsentWeb` | Static web route + RPC            | `token: text`, `decision: text`                         | `success: boolean`        | Public (token authenticated) | 404 on expired or invalid token, 409 if already answered                               |
 
 **Value sourcing**:
 
-| Action | Value produced / displayed | Source |
-| :--- | :--- | :--- |
-| Resolve active user | `current_student_id` | Read from Expo SecureStore on device |
-| Create student profile | `id` | Client generated UUID v4 on device |
-| Determine minor status | `is_minor` | Computed: difference between `date_of_birth` and current date < 18 years |
-| Generate guardian consent | `consent_token` | Client generated cryptographically random 32 character hex string |
-| Compute virtual occurrence | `id`, `start_time`, `end_time`, `venue` | Derived in memory from `class_rules` row plus calendar date |
-| Materialize class override | `id` | Deterministic UUID v5 generated from `rule_id` and `date` |
-| Link imported shared course | `semester_id` | Follower active local `semesters.id` |
-| Record check in | `answered_at` | Current device ISO 8601 UTC timestamp |
-| Check in expiry calculation | `expires_at` | Computed: occurrence date at 23:59:59 WAT plus 7 days in ISO 8601 UTC |
-| Compute attendance metric | `attendance_percentage` | Computed: `(present_count / total_occurrences) * 100` where `date <= today` |
-| Track individual assignment | `status` | Read from `student_assignment_progress` row for current student |
-| Enforce group capacity | `is_group_full` | Computed: count of `assignment_group_members` >= `assignment_groups.max_capacity` |
-| Resolve sync conflict | Winning record state | Compared: row with the most recent `updated_at` timestamp takes precedence |
+| Action                      | Value produced / displayed              | Source                                                                            |
+| :-------------------------- | :-------------------------------------- | :-------------------------------------------------------------------------------- |
+| Resolve active user         | `current_student_id`                    | Read from Expo SecureStore on device                                              |
+| Create student profile      | `id`                                    | Client generated UUID v4 on device                                                |
+| Determine minor status      | `is_minor`                              | Computed: difference between `date_of_birth` and current date < 18 years          |
+| Generate guardian consent   | `consent_token`                         | Client generated cryptographically random 32 character hex string                 |
+| Compute virtual occurrence  | `id`, `start_time`, `end_time`, `venue` | Derived in memory from `class_rules` row plus calendar date                       |
+| Materialize class override  | `id`                                    | Deterministic UUID v5 generated from `rule_id` and `date`                         |
+| Link imported shared course | `semester_id`                           | Follower active local `semesters.id`                                              |
+| Record check in             | `answered_at`                           | Current device ISO 8601 UTC timestamp                                             |
+| Check in expiry calculation | `expires_at`                            | Computed: occurrence date at 23:59:59 WAT plus 7 days in ISO 8601 UTC             |
+| Compute attendance metric   | `attendance_percentage`                 | Computed: `(present_count / total_occurrences) * 100` where `date <= today`       |
+| Track individual assignment | `status`                                | Read from `student_assignment_progress` row for current student                   |
+| Enforce group capacity      | `is_group_full`                         | Computed: count of `assignment_group_members` >= `assignment_groups.max_capacity` |
+| Resolve sync conflict       | Winning record state                    | Compared: row with the most recent `updated_at` timestamp takes precedence        |
 
 **Key invariants**:
 
@@ -366,16 +374,18 @@ The active student UUID is stored on the physical device in Expo SecureStore und
 **Security model**:
 
 - Local SQLite storage resides within application private sandbox storage, protected by Android and iOS operating system file permissions.
-- Remote Supabase PostgreSQL enforces strict Row Level Security (RLS) on all tables:
-  - `students`: authenticated users can read and update their own record (`auth.uid() = supabase_user_id`).
+- Remote Supabase PostgreSQL enforces strict Row Level Security (RLS) on all tables using Clerk JWT integration:
+  - `students`: authenticated users can read and update their own record (`(select auth.jwt() ->> 'sub') = clerk_user_id`).
   - `guardian_consents`: unapproved minor accounts have an explicit RLS insert exception to stage initial guardian requests before approval; updates are restricted to the token verified web consent endpoint.
-  - `semesters`, `attendance_records`, `student_assignment_progress`: restricted to `auth.uid() = supabase_user_id`. Minor accounts without `guardian_consent_status = 'approved'` are denied cloud insert and update access on these tables.
+  - `semesters`, `attendance_records`, `student_assignment_progress`: restricted to the authenticated student matching `(select auth.jwt() ->> 'sub') = (select clerk_user_id from students where id = student_id)`. Minor accounts without `guardian_consent_status = 'approved'` are denied cloud insert and update access on these tables.
   - `courses`, `class_rules`, `class_occurrences`: readable by course group members; writable only by course group owners (course representatives) or designated editors.
   - `course_groups`: public read for matching share codes; updates restricted to group owner.
 
 **Configuration required**:
 
-No additional environment variables or third party secrets are required for this schema specification beyond existing `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY`.
+- `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY`: Clerk client publishable key for mobile and web authentication sessions.
+- `EXPO_PUBLIC_SUPABASE_URL`: Supabase project URL for database REST and realtime subscriptions.
+- `EXPO_PUBLIC_SUPABASE_ANON_KEY`: Supabase anon key configured with Clerk third party auth integration.
 
 **Critical test scenarios**:
 
@@ -403,6 +413,7 @@ The build plan follows our Tracer Bullet approach, standing up the complete data
 ## Consequences
 
 **Positive**:
+
 - Complete offline reliability: students can run schedules, check ins, and assignments during total cellular outages.
 - Virtual recurrence efficiency: computing daily schedules in memory eliminates database bloat on two gigabyte RAM devices.
 - Multi follower assignment tracking: separate assignment progress table lets followers track individual completion on shared assignments.
@@ -410,10 +421,12 @@ The build plan follows our Tracer Bullet approach, standing up the complete data
 - Strict compliance: isolates minor data with an explicit staging path for parental consent before full cloud persistence.
 
 **Negative / tradeoffs**:
+
 - Dual schema maintenance: developers must keep local Drizzle SQLite schemas and remote Supabase PostgreSQL definitions synchronized.
 - Virtual recurrence logic: client application code must maintain in memory recurrence calculation and override merging logic.
 
 **Neutral**:
+
 - Soft delete columns require queries to filter with `where(eq(isDeleted, 0))` to exclude deleted records.
 
 ## Follow-up
