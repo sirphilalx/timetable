@@ -13,9 +13,10 @@
       "bundleIdentifier": "com.tt.app",
       "associatedDomains": ["applinks:studenttimetable.app"],
       "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
         "NSSupportsLiveActivities": true,
         "NSSupportsLiveActivitiesFrequentUpdates": true,
-        "NSCameraUsageDescription": "TT uses your camera to scan class QR codes shared by your course rep."
+        "NSCameraUsageDescription": "TT uses your camera to scan class QR codes shared by your course rep and take an optional student profile photo."
       }
     },
     "android": {
@@ -30,8 +31,7 @@
         "USE_EXACT_ALARM",
         "RECEIVE_BOOT_COMPLETED",
         "VIBRATE",
-        "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.CAMERA"
       ],
       "intentFilters": [
         {
@@ -64,7 +64,8 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "TT uses your camera to scan class QR codes shared by your course rep."
+          "cameraPermission": "TT uses your camera to scan class QR codes shared by your course rep and take an optional student profile photo.",
+          "recordAudioAndroid": false
         }
       ],
       [
