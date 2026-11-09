@@ -6,7 +6,6 @@
     "orientation": "portrait",
     "icon": "./logo/Logo-light.png",
     "scheme": "tt",
-    "jsEngine": "hermes",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
