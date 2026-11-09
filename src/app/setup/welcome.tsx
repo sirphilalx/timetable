@@ -824,17 +824,32 @@ export default function WelcomeScreen() {
           </Pressable>
 
           {!isSignIn ? (
-            <Text
-              variant="caption"
-              style={{
-                color: isDark ? "#94A3B8" : "#475569",
-                marginTop: 12,
-                lineHeight: 16,
-              }}
+            <Pressable
+              onPress={() => router.push("/privacy" as any)}
+              accessibilityRole="link"
+              style={{ marginTop: 12 }}
             >
-              By continuing you agree to the Terms and Privacy Policy.{"\n"}TT never sells your
-              data.
-            </Text>
+              <Text
+                variant="caption"
+                style={{
+                  color: isDark ? "#94A3B8" : "#475569",
+                  lineHeight: 16,
+                }}
+              >
+                By continuing you agree to the{" "}
+                <Text
+                  variant="caption"
+                  style={{
+                    color: isDark ? "#818CF8" : "#4F46E5",
+                    fontFamily: "Inter_600SemiBold",
+                    textDecorationLine: "underline",
+                  }}
+                >
+                  Terms and Privacy Policy
+                </Text>
+                .{"\n"}TT never sells your data.
+              </Text>
+            </Pressable>
           ) : null}
         </ScrollView>
 
@@ -1075,6 +1090,26 @@ export default function WelcomeScreen() {
           >
             <Text variant="label-lg" style={{ color: isDark ? "#818CF8" : "#4F46E5" }}>
               I already have an account
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => router.push("/privacy" as any)}
+            accessibilityRole="link"
+            style={{
+              height: 32,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text
+              variant="caption"
+              style={{
+                color: isDark ? "#64748B" : "#64748B",
+                textDecorationLine: "underline",
+              }}
+            >
+              Privacy Policy & Data Deletion
             </Text>
           </Pressable>
         </View>
