@@ -3,6 +3,7 @@ import { View, type ViewProps } from "react-native";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Text } from "./Text";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/theme";
 
 const badgeVariants = cva("flex-row items-center self-start rounded-full px-2.5 py-1", {
   variants: {
@@ -61,16 +62,59 @@ export function Badge({
   size = "default",
   className,
   textClassName,
+  style,
   ...props
 }: BadgeProps) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
   const typographyVariant = size === "sm" ? "caption" : "label-sm";
 
+  const surfaceColors = {
+    success: {
+      bg: isDark ? "#052E16" : "#DCFCE7",
+      border: isDark ? "#14532D" : "#BBF7D0",
+      text: isDark ? "#4ADE80" : "#15803D",
+    },
+    warning: {
+      bg: isDark ? "#451A03" : "#FEF3C7",
+      border: isDark ? "#78350F" : "#FDE68A",
+      text: isDark ? "#FBBF24" : "#B45309",
+    },
+    danger: {
+      bg: isDark ? "#450A0A" : "#FEE2E2",
+      border: isDark ? "#7F1D1D" : "#FECACA",
+      text: isDark ? "#F87171" : "#DC2626",
+    },
+    info: {
+      bg: isDark ? "#172554" : "#DBEAFE",
+      border: isDark ? "#1E3A8A" : "#BFDBFE",
+      text: isDark ? "#60A5FA" : "#1D4ED8",
+    },
+    neutral: {
+      bg: isDark ? "#1E293B" : "#F1F5F9",
+      border: isDark ? "#334155" : "#E2E8F0",
+      text: isDark ? "#CBD5E1" : "#334155",
+    },
+  }[variant ?? "neutral"];
+
   return (
-    <View className={cn(badgeVariants({ variant, size }), className)} {...props}>
+    <View
+      className={cn(badgeVariants({ variant, size }), className)}
+      style={[
+        {
+          backgroundColor: surfaceColors.bg,
+          borderColor: surfaceColors.border,
+          borderWidth: 1,
+        },
+        style,
+      ]}
+      {...props}
+    >
       {icon && <View className="mr-1.5">{icon}</View>}
       <Text
         variant={typographyVariant}
         className={cn(textVariants({ variant, size }), textClassName)}
+        style={{ color: surfaceColors.text }}
       >
         {label}
       </Text>

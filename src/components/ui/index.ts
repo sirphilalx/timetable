@@ -7,3 +7,5 @@ export * from "./Sheet";
 export * from "./Dialog";
 export * from "./OfflineBanner";
 export * from "./EmptyState";
+export * from "./StudentAvatar";
+export * from "./PhotoPickerSheet";

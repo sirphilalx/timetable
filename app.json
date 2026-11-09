@@ -6,16 +6,17 @@
     "orientation": "portrait",
     "icon": "./logo/Logo-light.png",
     "scheme": "tt",
-    "userInterfaceStyle": "automatic",
     "jsEngine": "hermes",
-    "splash": {
-      "image": "./logo/Logo-light.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0F172A"
-    },
+    "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.tt.app"
+      "bundleIdentifier": "com.tt.app",
+      "associatedDomains": ["applinks:studenttimetable.app"],
+      "infoPlist": {
+        "NSSupportsLiveActivities": true,
+        "NSSupportsLiveActivitiesFrequentUpdates": true,
+        "NSCameraUsageDescription": "TT uses your camera to scan class QR codes shared by your course rep."
+      }
     },
     "android": {
       "package": "com.tt.app",
@@ -24,19 +25,78 @@
         "backgroundColor": "#0F172A"
       },
       "permissions": [
+        "CAMERA",
         "SCHEDULE_EXACT_ALARM",
         "USE_EXACT_ALARM",
         "RECEIVE_BOOT_COMPLETED",
-        "VIBRATE"
+        "VIBRATE",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "studenttimetable.app",
+              "pathPrefix": "/join"
+            },
+            {
+              "scheme": "https",
+              "host": "studenttimetable.app",
+              "pathPrefix": "/consent"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
       ]
     },
     "web": {
       "bundler": "metro",
       "output": "static"
     },
-    "plugins": ["expo-router", "expo-secure-store", "expo-sqlite"],
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-sqlite",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "TT uses your camera to scan class QR codes shared by your course rep."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./logo/Logo-light.png",
+          "color": "#4F46E5"
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./logo/Logo-light.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#0F172A"
+        }
+      ],
+      "expo-web-browser"
+    ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "23de588a-bd17-4640-9600-d679225f2d6b"
+      }
+    },
+    "owner": "sirphil01"
   }
 }

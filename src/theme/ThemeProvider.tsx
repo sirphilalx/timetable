@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useMemo } from "react";
+import { Appearance, useColorScheme as useRNColorScheme } from "react-native";
 import { useColorScheme as useNativeWindColorScheme } from "nativewind";
 import { platformStorage } from "@/lib/storage";
 
@@ -15,8 +16,19 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
+function syncNativeColorScheme(preference: ThemePreference) {
+  try {
+    if (typeof Appearance?.setColorScheme === "function") {
+      Appearance.setColorScheme(preference === "system" ? "unspecified" : preference);
+    }
+  } catch {
+    // Web or unsupported platform fallback
+  }
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { colorScheme, setColorScheme } = useNativeWindColorScheme();
+  const rnColorScheme = useRNColorScheme();
   const [theme, setThemeState] = useState<ThemePreference>("system");
 
   useEffect(() => {
@@ -26,11 +38,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         if (saved === "light" || saved === "dark" || saved === "system") {
           setThemeState(saved);
           setColorScheme(saved);
+          syncNativeColorScheme(saved);
         } else {
           setColorScheme("system");
+          syncNativeColorScheme("system");
         }
       } catch {
         setColorScheme("system");
+        syncNativeColorScheme("system");
       }
     }
 
@@ -40,6 +55,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const setTheme = async (preference: ThemePreference) => {
     setThemeState(preference);
     setColorScheme(preference);
+    syncNativeColorScheme(preference);
     try {
       await platformStorage.setItem(THEME_STORAGE_KEY, preference);
     } catch {
@@ -49,10 +65,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const resolvedTheme: ResolvedTheme = useMemo(() => {
     if (theme === "system") {
-      return colorScheme === "dark" ? "dark" : "light";
+      const systemScheme = rnColorScheme ?? colorScheme;
+      return systemScheme === "dark" ? "dark" : "light";
     }
     return theme === "dark" ? "dark" : "light";
-  }, [theme, colorScheme]);
+  }, [theme, colorScheme, rnColorScheme]);
 
   return (
     <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme }}>

@@ -1,6 +1,6 @@
 # 04 · Design System and UI Foundation
 
-Status: approved
+Status: done
 
 ## Goal
 

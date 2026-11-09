@@ -1,14 +1,8 @@
 import React from "react";
-import {
-  Modal,
-  View,
-  TouchableWithoutFeedback,
-  KeyboardAvoidingView,
-  Platform,
-} from "react-native";
+import { Modal, View, Pressable, KeyboardAvoidingView, Platform } from "react-native";
 import { Text } from "./Text";
 import { Button } from "./Button";
-import { cn } from "@/lib/utils";
+import { useTheme } from "@/theme";
 
 export interface DialogProps {
   isOpen: boolean;
@@ -35,8 +29,10 @@ export function Dialog({
   onConfirm,
   onCancel,
   isLoading = false,
-  className,
 }: DialogProps) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
+
   const handleCancel = () => {
     if (onCancel) {
       onCancel();
@@ -49,54 +45,89 @@ export function Dialog({
     <Modal visible={isOpen} transparent animationType="fade" onRequestClose={onClose}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
-        className="flex-1"
+        style={{ flex: 1 }}
       >
-        <View className="flex-1 items-center justify-center bg-black/60 px-6">
-          {/* Backdrop dismiss */}
-          <TouchableWithoutFeedback onPress={onClose}>
-            <View className="absolute inset-0" />
-          </TouchableWithoutFeedback>
-
-          {/* Dialog Container */}
-          <View
-            className={cn(
-              "w-full max-w-sm rounded-2xl bg-white dark:bg-surface-cardDark p-6 shadow-2xl border border-line-light dark:border-line-dark",
-              className,
-            )}
+        <Pressable
+          onPress={onClose}
+          style={{
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "rgba(15, 23, 42, 0.5)",
+            paddingHorizontal: 24,
+          }}
+        >
+          <Pressable
+            onPress={(e) => e.stopPropagation()}
+            style={{
+              width: "100%",
+              maxWidth: 380,
+              borderRadius: 20,
+              backgroundColor: isDark ? "#1E293B" : "#FFFFFF",
+              padding: 24,
+              borderWidth: 1,
+              borderColor: isDark ? "#334155" : "#E2E8F0",
+              shadowColor: "#0F172A",
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: 0.2,
+              shadowRadius: 20,
+              elevation: 10,
+            }}
           >
-            <Text variant="title-section" className="mb-2 text-slate-900 dark:text-white">
+            <Text
+              variant="title-section"
+              style={{
+                color: isDark ? "#F8FAFC" : "#0F172A",
+                marginBottom: 8,
+              }}
+            >
               {title}
             </Text>
 
-            <Text variant="body" className="mb-6 text-slate-600 dark:text-slate-300">
+            <Text
+              variant="body"
+              style={{
+                color: isDark ? "#CBD5E1" : "#475569",
+                marginBottom: 24,
+              }}
+            >
               {description}
             </Text>
 
-            <View className="flex-row items-center justify-end space-x-3">
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "flex-end",
+                gap: 10,
+              }}
+            >
               {cancelText ? (
-                <Button
-                  variant="subtle"
-                  size="default"
-                  onPress={handleCancel}
-                  disabled={isLoading}
-                  className="flex-1 mr-2"
-                >
-                  {cancelText}
-                </Button>
+                <View style={{ flex: 1 }}>
+                  <Button
+                    variant="subtle"
+                    size="default"
+                    onPress={handleCancel}
+                    disabled={isLoading}
+                  >
+                    {cancelText}
+                  </Button>
+                </View>
               ) : null}
 
-              <Button
-                variant={variant === "destructive" ? "destructive" : "primary"}
-                size="default"
-                isLoading={isLoading}
-                onPress={onConfirm}
-                className="flex-1"
-              >
-                {confirmText}
-              </Button>
+              <View style={{ flex: 1 }}>
+                <Button
+                  variant={variant === "destructive" ? "destructive" : "primary"}
+                  size="default"
+                  isLoading={isLoading}
+                  onPress={onConfirm}
+                >
+                  {confirmText}
+                </Button>
+              </View>
             </View>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </KeyboardAvoidingView>
     </Modal>
   );

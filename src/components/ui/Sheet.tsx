@@ -1,17 +1,9 @@
 import React from "react";
-import {
-  Modal,
-  View,
-  Pressable,
-  TouchableWithoutFeedback,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-} from "react-native";
+import { Modal, View, Pressable, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { X } from "lucide-react-native";
 import { Text } from "./Text";
-import { cn } from "@/lib/utils";
+import { useTheme } from "@/theme";
 
 export interface SheetProps {
   isOpen: boolean;
@@ -21,40 +13,86 @@ export interface SheetProps {
   className?: string;
 }
 
-export function Sheet({ isOpen, onClose, title, children, className }: SheetProps) {
+export function Sheet({ isOpen, onClose, title, children }: SheetProps) {
   const insets = useSafeAreaInsets();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
+
+  const sheetBg = isDark ? "#1E293B" : "#FFFFFF";
+  const borderCol = isDark ? "#334155" : "#E2E8F0";
+  const handleCol = isDark ? "#475569" : "#CBD5E1";
+  const textPrimary = isDark ? "#F8FAFC" : "#0F172A";
 
   return (
     <Modal visible={isOpen} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
-        className="flex-1"
+        style={{ flex: 1 }}
       >
-        <View className="flex-1 justify-end bg-black/60">
-          {/* Backdrop dismiss */}
-          <TouchableWithoutFeedback onPress={onClose}>
-            <View className="flex-1" />
-          </TouchableWithoutFeedback>
-
-          {/* Bottom Sheet Content */}
-          <View
-            className={cn(
-              "w-full max-h-[90%] rounded-t-[24px] bg-white dark:bg-surface-cardDark shadow-xl border-t border-line-light dark:border-line-dark",
-              className,
-            )}
-            style={{ paddingBottom: Math.max(insets.bottom, 20) }}
+        <Pressable
+          onPress={onClose}
+          style={{
+            flex: 1,
+            justifyContent: "flex-end",
+            backgroundColor: "rgba(15, 23, 42, 0.45)",
+          }}
+        >
+          {/* Bottom Sheet Content anchored to the bottom */}
+          <Pressable
+            onPress={(e) => e.stopPropagation()}
+            style={{
+              width: "100%",
+              maxHeight: "90%",
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              backgroundColor: sheetBg,
+              borderTopWidth: 1,
+              borderColor: borderCol,
+              paddingBottom: Math.max(insets.bottom, 20),
+              shadowColor: "#0F172A",
+              shadowOffset: { width: 0, height: -4 },
+              shadowOpacity: 0.15,
+              shadowRadius: 16,
+              elevation: 12,
+            }}
           >
             {/* Drag Handle */}
-            <View className="items-center pt-3 pb-2">
-              <View className="h-1.5 w-12 rounded-full bg-slate-300 dark:bg-slate-700" />
+            <View
+              style={{
+                alignItems: "center",
+                paddingTop: 12,
+                paddingBottom: 8,
+              }}
+            >
+              <View
+                style={{
+                  width: 44,
+                  height: 5,
+                  borderRadius: 3,
+                  backgroundColor: handleCol,
+                }}
+              />
             </View>
 
             {/* Header if title provided */}
             {title ? (
-              <View className="flex-row items-center justify-between px-5 py-3 border-b border-line-light dark:border-line-dark">
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  paddingHorizontal: 20,
+                  paddingVertical: 12,
+                  borderBottomWidth: 1,
+                  borderBottomColor: borderCol,
+                }}
+              >
                 <Text
                   variant="title-section"
-                  className="font-semibold text-slate-900 dark:text-white"
+                  style={{
+                    color: textPrimary,
+                    fontFamily: "Inter_600SemiBold",
+                  }}
                 >
                   {title}
                 </Text>
@@ -62,7 +100,13 @@ export function Sheet({ isOpen, onClose, title, children, className }: SheetProp
                   accessibilityRole="button"
                   accessibilityLabel="Close sheet"
                   onPress={onClose}
-                  className="min-w-[44px] min-h-[44px] items-center justify-center rounded-full active:bg-slate-100 dark:active:bg-slate-800"
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
                 >
                   <X size={20} color="#64748B" />
                 </Pressable>
@@ -70,14 +114,14 @@ export function Sheet({ isOpen, onClose, title, children, className }: SheetProp
             ) : null}
 
             <ScrollView
-              contentContainerStyle={{ padding: 20 }}
+              contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 16 }}
               bounces={false}
               showsVerticalScrollIndicator={false}
             >
               {children}
             </ScrollView>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </KeyboardAvoidingView>
     </Modal>
   );

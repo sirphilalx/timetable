@@ -1,119 +1,294 @@
-import React from "react";
-import { View, ScrollView } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Link } from "expo-router";
-import { Sparkles, CheckCircle2, Layers } from "lucide-react-native";
-import { Text, Button, Card, Badge } from "@/components/ui";
-import { ClassCard, AttendancePill } from "@/components/timetable";
+import React, { useEffect, useState } from "react";
+import { View, Image } from "react-native";
+import { Redirect } from "expo-router";
+import { Text } from "@/components/ui/Text";
+import { useAuth } from "@/auth";
 
-export default function TodayScreen() {
-  return (
-    <SafeAreaView className="flex-1 bg-surface-light dark:bg-surface-dark">
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
-        {/* Header */}
-        <View className="mb-6 flex-row items-center justify-between">
-          <View>
-            <Text variant="title-page" className="font-bold">
-              TT Timetable
-            </Text>
-            <Text variant="body" className="text-slate-500 dark:text-slate-400">
-              Today · Semester 1
-            </Text>
-          </View>
-          <View className="h-10 w-10 items-center justify-center rounded-full bg-primary">
-            <Text variant="label" className="font-semibold text-white">
-              PO
-            </Text>
+const splashLogo = require("../../logo/Logo-dark.png");
+
+const SPLASH_DURATION_MS = 3000;
+
+function clamp(val: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, val));
+}
+
+function easeOutCubic(t: number): number {
+  const clamped = clamp(t, 0, 1);
+  return 1 - Math.pow(1 - clamped, 3);
+}
+
+function easeOutBack(t: number): number {
+  const clamped = clamp(t, 0, 1);
+  const c1 = 1.70158;
+  const c3 = c1 + 1;
+  return 1 + c3 * Math.pow(clamped - 1, 3) + c1 * Math.pow(clamped - 1, 2);
+}
+
+export default function RootIndex() {
+  const { isLoaded, isSignedIn, hasCompletedOnboarding } = useAuth();
+  const [splashReady, setSplashReady] = useState(false);
+  const [elapsedMs, setElapsedMs] = useState(0);
+
+  useEffect(() => {
+    const startTime = Date.now();
+    let rafId: number | null = null;
+    let active = true;
+
+    const tick = () => {
+      if (!active) return;
+      const now = Date.now() - startTime;
+      setElapsedMs(now);
+      if (now < SPLASH_DURATION_MS) {
+        rafId = requestAnimationFrame(tick);
+      } else {
+        setSplashReady(true);
+      }
+    };
+
+    rafId = requestAnimationFrame(tick);
+
+    const fallbackTimer = setTimeout(() => {
+      if (active) {
+        setSplashReady(true);
+      }
+    }, SPLASH_DURATION_MS + 50);
+
+    return () => {
+      active = false;
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+      clearTimeout(fallbackTimer);
+    };
+  }, []);
+
+  if (!isLoaded || !splashReady) {
+    // 1. Logo entrance (0 -> 560ms) with spring overshoot, then gentle breathing + float
+    const entranceT = clamp(elapsedMs / 560, 0, 1);
+    const entranceScale = 0.72 + 0.28 * easeOutBack(entranceT);
+    const breathPhase = Math.max(0, elapsedMs - 560);
+    const breathScale = elapsedMs > 560 ? 1 + 0.055 * Math.sin((breathPhase / 480) * Math.PI) : 1;
+    const logoScale = entranceScale * breathScale;
+
+    const entranceY = (1 - easeOutCubic(entranceT)) * 16;
+    const floatY = elapsedMs > 560 ? -3.5 * Math.sin((breathPhase / 600) * Math.PI) : 0;
+    const logoTranslateY = entranceY + floatY;
+
+    const logoRotateDeg = elapsedMs > 560 ? 2.2 * Math.sin((breathPhase / 750) * Math.PI) : 0;
+    const logoOpacity = clamp(0.35 + easeOutCubic(clamp(elapsedMs / 260, 0, 1)) * 0.65, 0.35, 1);
+
+    // 2. Concentric expanding ripple halo rings
+    const ring1Cycle = (elapsedMs % 1500) / 1500;
+    const ring1Scale = 0.92 + easeOutCubic(ring1Cycle) * 0.95;
+    const ring1Opacity = Math.sin(ring1Cycle * Math.PI) * (1 - ring1Cycle * 0.45) * 0.45;
+
+    const ring2Cycle = ((elapsedMs + 750) % 1500) / 1500;
+    const ring2Scale = 0.92 + easeOutCubic(ring2Cycle) * 0.95;
+    const ring2Opacity = Math.sin(ring2Cycle * Math.PI) * (1 - ring2Cycle * 0.45) * 0.35;
+
+    // 3. Diagonal glass shimmer sweep across the logo tile
+    const shimmerWindow = elapsedMs % 1450;
+    const shimmerT = clamp((shimmerWindow - 220) / 720, 0, 1);
+    const shimmerTranslateX = -115 + easeOutCubic(shimmerT) * 230;
+    const shimmerOpacity = shimmerT > 0 && shimmerT < 1 ? Math.sin(shimmerT * Math.PI) * 0.38 : 0;
+
+    // 4. Staggered title, subtitle, and progress bar
+    const titleT = easeOutCubic(clamp((elapsedMs - 140) / 420, 0, 1));
+    const subtitleT = easeOutCubic(clamp((elapsedMs - 280) / 440, 0, 1));
+    const progressPct = clamp((elapsedMs / (SPLASH_DURATION_MS - 120)) * 100, 4, 100);
+
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: "#4F46E5",
+          alignItems: "center",
+          justifyContent: "center",
+          paddingHorizontal: 24,
+        }}
+      >
+        {/* Logo + Concentric Ripple Rings Container */}
+        <View
+          style={{
+            width: 148,
+            height: 148,
+            alignItems: "center",
+            justifyContent: "center",
+            marginBottom: 18,
+          }}
+        >
+          {/* Soft Ambient Glow Disc */}
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              width: 112,
+              height: 112,
+              borderRadius: 32,
+              backgroundColor: "rgba(199, 210, 254, 0.18)",
+              transform: [{ scale: breathScale * 1.08 }],
+            }}
+          />
+
+          {/* Ripple Halo Ring 1 */}
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              width: 100,
+              height: 100,
+              borderRadius: 28,
+              borderWidth: 2,
+              borderColor: "#C7D2FE",
+              backgroundColor: "rgba(255, 255, 255, 0.06)",
+              opacity: ring1Opacity,
+              transform: [{ scale: ring1Scale }],
+            }}
+          />
+
+          {/* Ripple Halo Ring 2 */}
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              width: 100,
+              height: 100,
+              borderRadius: 28,
+              borderWidth: 1.5,
+              borderColor: "#E0E7FF",
+              backgroundColor: "rgba(255, 255, 255, 0.04)",
+              opacity: ring2Opacity,
+              transform: [{ scale: ring2Scale }],
+            }}
+          />
+
+          {/* Outer Shadow & Transform Wrapper (kept separate from overflow:hidden for iOS) */}
+          <View
+            style={{
+              width: 96,
+              height: 96,
+              borderRadius: 24,
+              shadowColor: "#000000",
+              shadowOffset: { width: 0, height: 12 },
+              shadowOpacity: 0.34,
+              shadowRadius: 20,
+              elevation: 10,
+              opacity: logoOpacity,
+              transform: [
+                { translateY: logoTranslateY },
+                { scale: logoScale },
+                { rotate: `${logoRotateDeg.toFixed(2)}deg` },
+              ],
+            }}
+          >
+            {/* Inner Clipped Logo Tile */}
+            <View
+              style={{
+                width: 96,
+                height: 96,
+                borderRadius: 24,
+                backgroundColor: "#0F172A",
+                overflow: "hidden",
+                alignItems: "center",
+                justifyContent: "center",
+                borderWidth: 1.5,
+                borderColor: "rgba(255, 255, 255, 0.28)",
+              }}
+            >
+              <Image
+                source={splashLogo}
+                style={{ width: 96, height: 96 }}
+                resizeMode="contain"
+                accessibilityLabel="TT: Student Timetable logo"
+              />
+
+              {/* Diagonal Glass Shimmer Sweep */}
+              <View
+                pointerEvents="none"
+                style={{
+                  position: "absolute",
+                  top: -28,
+                  bottom: -28,
+                  width: 34,
+                  backgroundColor: "#FFFFFF",
+                  opacity: shimmerOpacity,
+                  transform: [{ translateX: shimmerTranslateX }, { rotate: "22deg" }],
+                }}
+              />
+            </View>
           </View>
         </View>
 
-        {/* Showcase Launch Card */}
-        <Card className="mb-6 p-5 border-primary/30 bg-indigo-50/50 dark:bg-indigo-950/20">
-          <View className="mb-2 flex-row items-center justify-between">
-            <View className="flex-row items-center">
-              <Sparkles size={18} color="#4F46E5" />
-              <Text
-                variant="title-card"
-                className="ml-2 font-bold text-primary dark:text-primary-dark"
-              >
-                UI Foundation Ready
-              </Text>
-            </View>
-            <Badge variant="success" size="sm" label="Live" />
-          </View>
-          <Text variant="body" className="mb-4 text-slate-600 dark:text-slate-300">
-            Cadence Academy tokens, Inter typography, dark and light theme pipeline, and accessible
-            primitives.
+        {/* Staggered Title */}
+        <View
+          style={{
+            opacity: titleT,
+            transform: [{ translateY: (1 - titleT) * 10 }],
+            marginBottom: 10,
+          }}
+        >
+          <Text
+            variant="display"
+            style={{
+              color: "#FFFFFF",
+              fontSize: 24,
+              lineHeight: 30,
+              fontFamily: "Inter_700Bold",
+              textAlign: "center",
+            }}
+          >
+            TT: Student Timetable
           </Text>
-          <Link href="/ui-showcase" asChild>
-            <Button variant="primary" icon={<Layers size={18} color="#FFFFFF" />}>
-              Open UI Foundation Showcase
-            </Button>
-          </Link>
-        </Card>
+        </View>
 
-        {/* Stack Status Card */}
-        <Card className="mb-6 p-5">
-          <View className="mb-3 flex-row items-center justify-between">
-            <Text variant="title-card" className="font-semibold text-slate-900 dark:text-white">
-              Architecture Scaffold
-            </Text>
-            <Badge
-              variant="success"
-              size="sm"
-              label="Verified"
-              icon={<CheckCircle2 size={12} color="#16A34A" />}
-            />
-          </View>
-          <Text variant="body" className="mb-4 text-slate-600 dark:text-slate-300">
-            React Native Expo SDK 52, Expo Router v4, SQLite Drizzle ORM, Supabase client, and
-            NativeWind v4 tokens.
+        {/* Staggered Subtitle */}
+        <View
+          style={{
+            opacity: subtitleT,
+            transform: [{ translateY: (1 - subtitleT) * 8 }],
+          }}
+        >
+          <Text
+            variant="body-lg"
+            style={{
+              color: "rgba(255, 255, 255, 0.9)",
+              fontFamily: "Inter_400Regular",
+              textAlign: "center",
+              lineHeight: 22,
+            }}
+          >
+            Your class, your timetable, on time.
           </Text>
+        </View>
 
-          {/* Layer badges */}
-          <View className="flex-row flex-wrap gap-2">
-            <Badge variant="neutral" size="sm" label="Hermes Engine" />
-            <Badge variant="neutral" size="sm" label="NativeWind v4" />
-            <Badge variant="neutral" size="sm" label="Inter Typography" />
-            <Badge variant="neutral" size="sm" label="SQLite + Drizzle" />
-            <Badge variant="neutral" size="sm" label="WCAG AA Contrast" />
-          </View>
-        </Card>
-
-        {/* Class Card Primitive Example */}
-        <View className="mb-6">
-          <Text variant="title-section" className="mb-3 font-semibold">
-            Next Lecture
-          </Text>
-          <ClassCard
-            courseCode="MTH 301"
-            courseTitle="Abstract Algebra & Vector Spaces"
-            courseColor="#2563EB"
-            time="10:00 AM – 12:00 PM"
-            venue="Lecture Hall 2 (LT2)"
-            lecturer="Prof. Adebayo"
-            status="upcoming"
+        {/* Smooth 3-Second Loading Pill */}
+        <View
+          style={{
+            marginTop: 36,
+            width: 120,
+            height: 4,
+            borderRadius: 2,
+            backgroundColor: "rgba(255, 255, 255, 0.22)",
+            overflow: "hidden",
+            opacity: subtitleT,
+          }}
+        >
+          <View
+            style={{
+              width: `${progressPct.toFixed(1)}%` as any,
+              height: "100%",
+              borderRadius: 2,
+              backgroundColor: "#FFFFFF",
+            }}
           />
         </View>
+      </View>
+    );
+  }
 
-        {/* Attendance Pill Example */}
-        <Card className="mb-6 p-4">
-          <Text variant="label" className="mb-2 text-slate-500 dark:text-slate-400">
-            Quick Check In Status
-          </Text>
-          <View className="flex-row flex-wrap gap-2">
-            <AttendancePill status="attended" />
-            <AttendancePill status="pending" />
-          </View>
-        </Card>
+  if (!isSignedIn || !hasCompletedOnboarding) {
+    return <Redirect href="/setup/welcome" />;
+  }
 
-        {/* Navigation test button */}
-        <Link href="/join/CSC3X9" asChild>
-          <Button variant="secondary" className="w-full">
-            Preview Shared Class (CSC 300L)
-          </Button>
-        </Link>
-      </ScrollView>
-    </SafeAreaView>
-  );
+  return <Redirect href="/(tabs)" />;
 }

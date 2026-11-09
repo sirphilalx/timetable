@@ -1,11 +1,12 @@
 declare module "lucide-react-native" {
   import type { FC } from "react";
   import type { SvgProps } from "react-native-svg";
+  import type { ColorValue } from "react-native";
 
   export interface LucideProps extends SvgProps {
     size?: number | string;
     strokeWidth?: number | string;
-    color?: string;
+    color?: ColorValue | string;
   }
 
   export type LucideIcon = FC<LucideProps>;
@@ -16,6 +17,7 @@ declare module "lucide-react-native" {
   export const Clock: LucideIcon;
   export const MapPin: LucideIcon;
   export const User: LucideIcon;
+  export const Users: LucideIcon;
   export const AlertCircle: LucideIcon;
   export const WifiOff: LucideIcon;
   export const Check: LucideIcon;
@@ -27,6 +29,10 @@ declare module "lucide-react-native" {
   export const Search: LucideIcon;
   export const BookOpen: LucideIcon;
   export const Calendar: LucideIcon;
+  export const CalendarDays: LucideIcon;
+  export const GraduationCap: LucideIcon;
+  export const ClipboardCheck: LucideIcon;
+  export const CornerUpRight: LucideIcon;
   export const ChevronRight: LucideIcon;
   export const ChevronLeft: LucideIcon;
   export const ChevronDown: LucideIcon;
@@ -41,4 +47,48 @@ declare module "lucide-react-native" {
   export const CheckSquare: LucideIcon;
   export const FileText: LucideIcon;
   export const Info: LucideIcon;
+  export const Scan: LucideIcon;
+  export const BarChart2: LucideIcon;
+  export const LogOut: LucideIcon;
+  export const MoreHorizontal: LucideIcon;
+  export const AlertTriangle: LucideIcon;
+  export const CalendarOff: LucideIcon;
+  export const Flag: LucideIcon;
+  export const Link2: LucideIcon;
+  export const Link2Off: LucideIcon;
+  export const Copy: LucideIcon;
+  export const MessageCircle: LucideIcon;
+  export const Download: LucideIcon;
+  export const Monitor: LucideIcon;
+  export const Shield: LucideIcon;
+  export const ShieldCheck: LucideIcon;
+  export const Mail: LucideIcon;
+  export const Lock: LucideIcon;
+  export const BatteryCharging: LucideIcon;
+  export const RefreshCw: LucideIcon;
+  export const PauseCircle: LucideIcon;
+  export const PlayCircle: LucideIcon;
+  export const Archive: LucideIcon;
+  export const UserPlus: LucideIcon;
+  export const UserMinus: LucideIcon;
+  export const UserCheck: LucideIcon;
+  export const HelpCircle: LucideIcon;
+  export const ExternalLink: LucideIcon;
+  export const List: LucideIcon;
+  export const Grid: LucideIcon;
+  export const History: LucideIcon;
+  export const Filter: LucideIcon;
+  export const Pause: LucideIcon;
+  export const Crown: LucideIcon;
+  export const Edit2: LucideIcon;
+  export const Edit3: LucideIcon;
+  export const Unlock: LucideIcon;
+  export const Repeat: LucideIcon;
+  export const Dumbbell: LucideIcon;
+  export const FileCheck2: LucideIcon;
+  export const SlidersHorizontal: LucideIcon;
+  export const Menu: LucideIcon;
+  export const AtSign: LucideIcon;
+  export const Camera: LucideIcon;
+  export const Image: LucideIcon;
 }

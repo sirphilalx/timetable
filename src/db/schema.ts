@@ -7,6 +7,8 @@ export const students = sqliteTable(
     id: text("id").primaryKey(), // UUID v4
     clerkUserId: text("clerk_user_id").unique(),
     displayName: text("display_name").notNull(),
+    username: text("username"),
+    avatarUrl: text("avatar_url"),
     email: text("email"),
     institution: text("institution"),
     dateOfBirth: text("date_of_birth"), // ISO date YYYY-MM-DD

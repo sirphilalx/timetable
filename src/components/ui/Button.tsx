@@ -3,6 +3,7 @@ import { Pressable, type PressableProps, ActivityIndicator, View, Platform } fro
 import { cva, type VariantProps } from "class-variance-authority";
 import { Text } from "./Text";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/theme";
 
 const buttonVariants = cva(
   "flex-row items-center justify-center min-w-[44px] min-h-[44px] active:opacity-80",
@@ -35,7 +36,7 @@ const buttonVariants = cva(
 const textVariants = cva("text-center", {
   variants: {
     variant: {
-      primary: "text-white dark:text-slate-900",
+      primary: "text-white",
       secondary: "text-slate-800 dark:text-slate-100",
       subtle: "text-slate-700 dark:text-slate-300",
       destructive: "text-white",
@@ -71,13 +72,35 @@ export function Button({
   iconPosition = "left",
   className,
   textClassName,
+  style,
   ...props
 }: ButtonProps) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
   const isInteractiveDisabled = Boolean(disabled || isLoading);
   const typographyVariant = size === "sm" ? "label" : "label-lg";
 
   const contentColor =
-    variant === "primary" ? "#FFFFFF" : variant === "destructive" ? "#FFFFFF" : "#4F46E5";
+    variant === "primary"
+      ? "#FFFFFF"
+      : variant === "destructive"
+        ? "#FFFFFF"
+        : isDark
+          ? "#F8FAFC"
+          : "#1E293B";
+
+  const surfaceStyle =
+    variant === "primary"
+      ? { backgroundColor: "#4F46E5" }
+      : variant === "secondary"
+        ? {
+            backgroundColor: isDark ? "#1E293B" : "#FFFFFF",
+            borderColor: isDark ? "#334155" : "#E2E8F0",
+            borderWidth: 1,
+          }
+        : variant === "destructive"
+          ? { backgroundColor: "#DC2626" }
+          : { backgroundColor: "transparent" };
 
   return (
     <Pressable
@@ -93,6 +116,11 @@ export function Button({
           : undefined
       }
       className={cn(buttonVariants({ variant, size, disabled: isInteractiveDisabled }), className)}
+      style={
+        typeof style === "function"
+          ? (state) => [surfaceStyle, style(state)]
+          : [surfaceStyle, style]
+      }
       {...props}
     >
       {isLoading ? (
@@ -104,6 +132,7 @@ export function Button({
             <Text
               variant={typographyVariant}
               className={cn(textVariants({ variant, size }), textClassName)}
+              style={{ color: contentColor }}
             >
               {children}
             </Text>

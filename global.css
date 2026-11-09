@@ -3,6 +3,11 @@
 @tailwind utilities;
 
 @layer base {
+  html,
+  body {
+    overscroll-behavior-x: none;
+  }
+
   :root {
     --canvas: #f8fafc;
     --surface: #ffffff;

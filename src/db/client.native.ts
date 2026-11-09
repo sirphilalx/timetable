@@ -13,4 +13,14 @@ export type Database = typeof db;
 // Run bundled SQLite migrations in a transaction on app startup
 export async function runMigrations(): Promise<void> {
   await migrate(db, migrations);
+  try {
+    expoDb.execSync("ALTER TABLE students ADD COLUMN username text;");
+  } catch {
+    // Column already exists
+  }
+  try {
+    expoDb.execSync("ALTER TABLE students ADD COLUMN avatar_url text;");
+  } catch {
+    // Column already exists
+  }
 }

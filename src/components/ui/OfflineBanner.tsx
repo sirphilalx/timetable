@@ -4,6 +4,7 @@ import NetInfo from "@react-native-community/netinfo";
 import { WifiOff } from "lucide-react-native";
 import { Text } from "./Text";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/theme";
 
 export interface OfflineBannerProps {
   isOffline?: boolean;
@@ -11,6 +12,8 @@ export interface OfflineBannerProps {
 }
 
 export function OfflineBanner({ isOffline: manualOffline, className }: OfflineBannerProps) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
   const [isNetOffline, setIsNetOffline] = useState(false);
 
   useEffect(() => {
@@ -38,14 +41,26 @@ export function OfflineBanner({ isOffline: manualOffline, className }: OfflineBa
     <View
       accessibilityRole="alert"
       className={cn(
-        "w-full min-h-[48px] px-4 py-2.5 flex-row items-center justify-center bg-amber-50 dark:bg-amber-950/80 border-b border-amber-200 dark:border-amber-900/60 shadow-sm",
+        "w-full min-h-[48px] px-4 py-2.5 flex-row items-center justify-center shadow-sm",
         className,
       )}
+      style={{
+        backgroundColor: isDark ? "#451A03" : "#FFFBEB",
+        borderBottomWidth: 1,
+        borderBottomColor: isDark ? "#78350F" : "#FDE68A",
+      }}
     >
       <View className="mr-2.5">
-        <WifiOff size={18} color="#D97706" />
+        <WifiOff size={18} color={isDark ? "#FBBF24" : "#D97706"} />
       </View>
-      <Text variant="caption" className="flex-1 font-medium text-amber-900 dark:text-amber-200">
+      <Text
+        variant="caption"
+        style={{
+          flex: 1,
+          fontFamily: "Inter_500Medium",
+          color: isDark ? "#FDE68A" : "#78350F",
+        }}
+      >
         You are offline. Your timetable remains accessible and changes will sync once reconnected.
       </Text>
     </View>

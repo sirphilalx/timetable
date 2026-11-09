@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { View, ScrollView, SafeAreaView } from "react-native";
+import { View, ScrollView } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Sun, Moon, Smartphone, Search, Calendar } from "lucide-react-native";
 import {
   Text,
@@ -17,6 +18,7 @@ import { useTheme } from "@/theme";
 
 export default function UIShowcaseScreen() {
   const { theme, resolvedTheme, setTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDestructiveDialogOpen, setIsDestructiveDialogOpen] = useState(false);
@@ -25,7 +27,7 @@ export default function UIShowcaseScreen() {
   const [inputError, setInputError] = useState("");
 
   return (
-    <SafeAreaView className="flex-1 bg-surface-light dark:bg-surface-dark">
+    <SafeAreaView style={{ flex: 1, backgroundColor: isDark ? "#0F172A" : "#F8FAFC" }}>
       {/* Offline banner toggle demonstration */}
       <OfflineBanner isOffline={showOfflineBanner} />
 
