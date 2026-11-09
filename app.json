@@ -10,7 +10,7 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.tt.app",
+      "bundleIdentifier": "app.studenttimetable.tt",
       "associatedDomains": ["applinks:studenttimetable.app"],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -20,7 +20,7 @@
       }
     },
     "android": {
-      "package": "com.tt.app",
+      "package": "app.studenttimetable.tt",
       "adaptiveIcon": {
         "foregroundImage": "./logo/Logo-light.png",
         "backgroundColor": "#0F172A"
