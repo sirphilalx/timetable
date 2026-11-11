@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { View, Image } from "react-native";
+import { View, Image, Platform } from "react-native";
 import { Redirect } from "expo-router";
 import { Text } from "@/components/ui/Text";
+import { WebLandingPage } from "@/components/web/WebLandingPage";
 import { useAuth } from "@/auth";
 
 const splashLogo = require("../../logo/Logo-dark.png");
@@ -61,6 +62,10 @@ export default function RootIndex() {
       clearTimeout(fallbackTimer);
     };
   }, []);
+
+  if (Platform.OS === "web") {
+    return <WebLandingPage />;
+  }
 
   if (!isLoaded || !splashReady) {
     // 1. Logo entrance (0 -> 560ms) with spring overshoot, then gentle breathing + float
