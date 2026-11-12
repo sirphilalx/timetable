@@ -1,28 +1,26 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  View,
-  ScrollView,
-  Pressable,
-  TextInput,
   Image,
-  useWindowDimensions,
-  Linking,
   ImageSourcePropType,
+  Linking,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  Pressable,
+  ScrollView,
+  TextInput,
+  useWindowDimensions,
+  View,
+  ViewStyle,
 } from "react-native";
 import { useRouter } from "expo-router";
 import {
-  Bell,
-  Users,
-  CheckCircle2,
   ArrowRight,
-  ShieldCheck,
-  WifiOff,
   BarChart2,
+  Bell,
+  CheckCircle2,
   Layers,
   Smartphone,
-  Check,
-  Calendar,
-  BookOpen,
+  Users,
 } from "lucide-react-native";
 import { Text } from "@/components/ui/Text";
 
@@ -223,6 +221,129 @@ const HERO_SHOWCASES: HeroShowcaseConfig[] = [
   },
 ];
 
+type RevealDirection = "up" | "left" | "right" | "scale";
+
+/**
+ * Scroll-triggered entrance animation wrapper.
+ * Measures its real position relative to the viewport on scroll & mount,
+ * and smoothly animates opacity, translation, and scale with configurable stagger delay.
+ */
+function ScrollReveal({
+  children,
+  scrollY,
+  viewportHeight,
+  delayMs = 0,
+  direction = "up",
+  distance = 36,
+  immediate = false,
+  style,
+}: {
+  children: React.ReactNode;
+  scrollY: number;
+  viewportHeight: number;
+  delayMs?: number;
+  direction?: RevealDirection;
+  distance?: number;
+  immediate?: boolean;
+  style?: ViewStyle;
+}) {
+  const containerRef = useRef<any>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    if (immediate) {
+      const timer = setTimeout(() => {
+        setIsVisible(true);
+      }, 24);
+      return () => clearTimeout(timer);
+    }
+  }, [immediate]);
+
+  useEffect(() => {
+    if (isVisible) return;
+    const node = containerRef.current as any;
+    if (!node) return;
+
+    if (typeof node.getBoundingClientRect === "function") {
+      const rect = node.getBoundingClientRect();
+      if (rect && rect.top <= viewportHeight - 44) {
+        setIsVisible(true);
+      }
+      return;
+    }
+
+    if (typeof node.measureInWindow === "function") {
+      node.measureInWindow((_x: number, y: number) => {
+        if (typeof y === "number" && y <= viewportHeight - 44) {
+          setIsVisible(true);
+        }
+      });
+    }
+  }, [isVisible, scrollY, viewportHeight]);
+
+  const translateY = direction === "up" ? (isVisible ? 0 : distance) : 0;
+  const translateX =
+    direction === "left"
+      ? isVisible
+        ? 0
+        : -distance
+      : direction === "right"
+        ? isVisible
+          ? 0
+          : distance
+        : 0;
+  const scale = direction === "scale" ? (isVisible ? 1 : 0.94) : isVisible ? 1 : 0.98;
+
+  return (
+    <View
+      ref={containerRef}
+      style={[
+        style,
+        {
+          opacity: isVisible ? 1 : 0,
+          transform: [{ translateY }, { translateX }, { scale }],
+          transitionProperty: "opacity, transform",
+          transitionDuration: "720ms",
+          transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
+          transitionDelay: `${delayMs}ms`,
+          willChange: "opacity, transform",
+        } as any,
+      ]}
+    >
+      {children}
+    </View>
+  );
+}
+
+/**
+ * Interactive hover lift card wrapper for desktop web + touch feedback.
+ */
+function HoverLiftCard({ children, style }: { children: React.ReactNode; style?: ViewStyle }) {
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <Pressable
+      onHoverIn={() => setIsHovered(true)}
+      onHoverOut={() => setIsHovered(false)}
+      style={{ flex: style?.flex, minWidth: style?.minWidth }}
+    >
+      <View
+        style={[
+          style,
+          {
+            transform: [{ translateY: isHovered ? -8 : 0 }, { scale: isHovered ? 1.012 : 1 }],
+            transitionProperty: "transform, box-shadow, border-color",
+            transitionDuration: "320ms",
+            transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
+          } as any,
+        ]}
+      >
+        {children}
+      </View>
+    </Pressable>
+  );
+}
+
 function PhoneScreenshotFrame({
   source,
   width,
@@ -347,12 +468,33 @@ function PhoneScreenshotFrame({
 
 export function WebLandingPage() {
   const router = useRouter();
-  const { width } = useWindowDimensions();
+  const { width, height: viewportHeight } = useWindowDimensions();
   const isDesktop = width >= 1024;
   const isTablet = width >= 720;
 
   const [activeHeroTab, setActiveHeroTab] = useState<HeroTabKey>("today");
+  const [heroTabEntering, setHeroTabEntering] = useState(true);
   const [shareCodeInput, setShareCodeInput] = useState("CSC3X9");
+  const [scrollY, setScrollY] = useState(0);
+  const [contentHeight, setContentHeight] = useState(4000);
+
+  const handleSelectHeroTab = (nextTab: HeroTabKey) => {
+    if (nextTab === activeHeroTab) return;
+    setHeroTabEntering(false);
+    setActiveHeroTab(nextTab);
+    setTimeout(() => {
+      setHeroTabEntering(true);
+    }, 24);
+  };
+
+  const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const nextY = event.nativeEvent.contentOffset.y;
+    const totalH = event.nativeEvent.contentSize.height;
+    setScrollY(nextY);
+    if (totalH > 0) {
+      setContentHeight(totalH);
+    }
+  }, []);
 
   const currentHero =
     HERO_SHOWCASES.find((item) => item.key === activeHeroTab) ?? HERO_SHOWCASES[0]!;
@@ -361,6 +503,29 @@ export function WebLandingPage() {
     const clean = (customCode ?? shareCodeInput).trim().toUpperCase() || "CSC3X9";
     router.push(`/join/${clean}` as any);
   };
+
+  // Continuous scroll-linked values
+  const maxScroll = Math.max(1, contentHeight - viewportHeight);
+  const scrollProgressPct = Math.min(100, Math.max(0, (scrollY / maxScroll) * 100));
+  const isHeaderElevated = scrollY > 12;
+
+  // Hero 3-Phone Scroll Parallax & Fan-Out (0 -> 1 over first 680px of scroll)
+  const heroParallax = Math.min(1, Math.max(0, scrollY / 680));
+  const leftPhoneTranslateX = -heroParallax * 18;
+  const leftPhoneTranslateY = heroParallax * 16;
+  const leftPhoneRotate = `${(-heroParallax * 2.2).toFixed(2)}deg`;
+
+  const centerPhoneTranslateY = -heroParallax * 14;
+  const centerPhoneScale = 1 + heroParallax * 0.025;
+
+  const rightPhoneTranslateX = heroParallax * 18;
+  const rightPhoneTranslateY = heroParallax * 16;
+  const rightPhoneRotate = `${(heroParallax * 2.2).toFixed(2)}deg`;
+
+  // Tab switch transition values
+  const heroTabOpacity = heroTabEntering ? 1 : 0.35;
+  const heroTabTranslateY = heroTabEntering ? 0 : 16;
+  const heroTabScale = heroTabEntering ? 1 : 0.975;
 
   // Responsive phone widths so screenshots are large, crisp, and legible on every viewport
   const heroCenterWidth = isDesktop
@@ -381,22 +546,42 @@ export function WebLandingPage() {
       : Math.min(261, Math.max(225, width - 88));
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: "#F8FAFC" }}
-      contentContainerStyle={{ flexGrow: 1 }}
-      showsVerticalScrollIndicator={false}
-    >
+    <View style={{ flex: 1, backgroundColor: "#F8FAFC" }}>
       {/* ===================================================================== */}
-      {/* 1. STICKY EDITORIAL NAVIGATION HEADER (TT Light Canvas)               */}
+      {/* 1. PINNED STICKY HEADER + LIVE SCROLL PROGRESS BAR                    */}
       {/* ===================================================================== */}
       <View
         style={{
           width: "100%",
-          backgroundColor: "rgba(255, 255, 255, 0.94)",
+          backgroundColor: isHeaderElevated
+            ? "rgba(255, 255, 255, 0.96)"
+            : "rgba(255, 255, 255, 0.90)",
           borderBottomWidth: 1,
-          borderBottomColor: "#E2E8F0",
+          borderBottomColor: isHeaderElevated ? "#CBD5E1" : "#E2E8F0",
+          shadowColor: "#0F172A",
+          shadowOffset: { width: 0, height: isHeaderElevated ? 8 : 0 },
+          shadowOpacity: isHeaderElevated ? 0.06 : 0,
+          shadowRadius: isHeaderElevated ? 16 : 0,
+          zIndex: 50,
         }}
       >
+        {/* Top Live Scroll Progress Indicator */}
+        <View
+          style={{
+            width: "100%",
+            height: 3,
+            backgroundColor: "rgba(79, 70, 229, 0.08)",
+          }}
+        >
+          <View
+            style={{
+              width: `${scrollProgressPct.toFixed(1)}%` as any,
+              height: "100%",
+              backgroundColor: "#4F46E5",
+            }}
+          />
+        </View>
+
         <View
           style={{
             width: "100%",
@@ -552,536 +737,487 @@ export function WebLandingPage() {
       </View>
 
       {/* ===================================================================== */}
-      {/* 2. NOTION CALENDAR–STYLE EDITORIAL HERO + MULTI-SCREEN STAGE          */}
+      {/* SCROLLABLE MARKETING CANVAS                                           */}
       {/* ===================================================================== */}
-      <View
-        style={{
-          width: "100%",
-          backgroundColor: "#FFFFFF",
-          borderBottomWidth: 1,
-          borderBottomColor: "#E2E8F0",
-        }}
+      <ScrollView
+        style={{ flex: 1, backgroundColor: "#F8FAFC" }}
+        contentContainerStyle={{ flexGrow: 1 }}
+        showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       >
+        {/* =================================================================== */}
+        {/* 2. NOTION CALENDAR–STYLE EDITORIAL HERO + PARALLAX 3-SCREEN STAGE   */}
+        {/* =================================================================== */}
         <View
           style={{
             width: "100%",
-            maxWidth: 1200,
-            alignSelf: "center",
-            paddingHorizontal: isDesktop ? 32 : 20,
-            paddingTop: isDesktop ? 64 : 40,
-            paddingBottom: isDesktop ? 72 : 48,
-            alignItems: "center",
+            backgroundColor: "#FFFFFF",
+            borderBottomWidth: 1,
+            borderBottomColor: "#E2E8F0",
           }}
         >
-          {/* Pill Badge */}
           <View
             style={{
-              flexDirection: "row",
+              width: "100%",
+              maxWidth: 1200,
+              alignSelf: "center",
+              paddingHorizontal: isDesktop ? 32 : 20,
+              paddingTop: isDesktop ? 64 : 40,
+              paddingBottom: isDesktop ? 72 : 48,
               alignItems: "center",
-              gap: 8,
-              paddingHorizontal: 14,
-              paddingVertical: 6,
-              borderRadius: 999,
-              backgroundColor: "#EEF2FF",
-              borderWidth: 1,
-              borderColor: "#C7D2FE",
-              marginBottom: 20,
             }}
           >
-            <View
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: 999,
-                backgroundColor: "#4F46E5",
-              }}
-            />
-            <Text
-              style={{
-                color: "#4338CA",
-                fontSize: 13,
-                lineHeight: 18,
-                fontFamily: "Inter_600SemiBold",
-              }}
+            {/* Staggered Entrance 1: Pill Badge */}
+            <ScrollReveal
+              scrollY={scrollY}
+              viewportHeight={viewportHeight}
+              immediate
+              delayMs={0}
+              distance={20}
             >
-              Built for university students & course reps · iOS, Android & Web
-            </Text>
-          </View>
-
-          {/* Editorial Display Headline (Sentence case per TT Style Guide) */}
-          <Text
-            style={{
-              color: "#0F172A",
-              fontSize: isDesktop ? 56 : isTablet ? 44 : 34,
-              lineHeight: isDesktop ? 64 : isTablet ? 52 : 40,
-              fontFamily: "Inter_700Bold",
-              textAlign: "center",
-              maxWidth: 860,
-              letterSpacing: -1,
-            }}
-          >
-            Your class, your timetable, on time.
-          </Text>
-
-          {/* Supporting Lead Copy */}
-          <Text
-            style={{
-              marginTop: 18,
-              color: "#334155",
-              fontSize: isDesktop ? 20 : 17,
-              lineHeight: isDesktop ? 30 : 26,
-              fontFamily: "Inter_400Regular",
-              textAlign: "center",
-              maxWidth: 720,
-            }}
-          >
-            One shared link from your course rep puts every lecture, venue change, assignment, CBT
-            exam, and reading session on your phone—with reminders that work even when data is off.
-          </Text>
-
-          {/* Hero Primary CTAs */}
-          <View
-            style={{
-              marginTop: 28,
-              flexDirection: isTablet ? "row" : "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 12,
-              width: isTablet ? "auto" : "100%",
-            }}
-          >
-            <Pressable
-              onPress={() => Linking.openURL(APP_STORE_SEARCH_URL)}
-              style={{
-                width: isTablet ? "auto" : "100%",
-                paddingHorizontal: 24,
-                paddingVertical: 14,
-                borderRadius: 12,
-                backgroundColor: "#4F46E5",
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 10,
-                shadowColor: "#4F46E5",
-                shadowOffset: { width: 0, height: 8 },
-                shadowOpacity: 0.25,
-                shadowRadius: 16,
-              }}
-            >
-              <Smartphone size={18} color="#FFFFFF" />
-              <Text
+              <View
                 style={{
-                  color: "#FFFFFF",
-                  fontSize: 16,
-                  lineHeight: 20,
-                  fontFamily: "Inter_600SemiBold",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 8,
+                  paddingHorizontal: 14,
+                  paddingVertical: 6,
+                  borderRadius: 999,
+                  backgroundColor: "#EEF2FF",
+                  borderWidth: 1,
+                  borderColor: "#C7D2FE",
+                  marginBottom: 20,
                 }}
               >
-                Download on the App Store
-              </Text>
-            </Pressable>
+                <View
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: 999,
+                    backgroundColor: "#4F46E5",
+                  }}
+                />
+                <Text
+                  style={{
+                    color: "#4338CA",
+                    fontSize: 13,
+                    lineHeight: 18,
+                    fontFamily: "Inter_600SemiBold",
+                  }}
+                >
+                  Built for university students & course reps · iOS, Android & Web
+                </Text>
+              </View>
+            </ScrollReveal>
 
-            <Pressable
-              onPress={() => router.push("/setup/welcome?mode=signup" as any)}
-              style={{
-                width: isTablet ? "auto" : "100%",
-                paddingHorizontal: 22,
-                paddingVertical: 14,
-                borderRadius: 12,
-                backgroundColor: "#0F172A",
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
-              }}
-            >
-              <Text
-                style={{
-                  color: "#FFFFFF",
-                  fontSize: 16,
-                  lineHeight: 20,
-                  fontFamily: "Inter_600SemiBold",
-                }}
-              >
-                Open web companion
-              </Text>
-              <ArrowRight size={17} color="#FFFFFF" />
-            </Pressable>
-
-            <Pressable
-              onPress={() => handlePreviewCode("CSC3X9")}
-              style={{
-                width: isTablet ? "auto" : "100%",
-                paddingHorizontal: 20,
-                paddingVertical: 14,
-                borderRadius: 12,
-                backgroundColor: "#F8FAFC",
-                borderWidth: 1,
-                borderColor: "#CBD5E1",
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 8,
-              }}
+            {/* Staggered Entrance 2: Editorial Display Headline */}
+            <ScrollReveal
+              scrollY={scrollY}
+              viewportHeight={viewportHeight}
+              immediate
+              delayMs={80}
+              distance={26}
             >
               <Text
                 style={{
                   color: "#0F172A",
-                  fontSize: 15,
-                  lineHeight: 20,
-                  fontFamily: "Inter_600SemiBold",
+                  fontSize: isDesktop ? 56 : isTablet ? 44 : 34,
+                  lineHeight: isDesktop ? 64 : isTablet ? 52 : 40,
+                  fontFamily: "Inter_700Bold",
+                  textAlign: "center",
+                  maxWidth: 860,
+                  letterSpacing: -1,
                 }}
               >
-                Preview class CSC3X9
+                Your class, your timetable, on time.
               </Text>
-            </Pressable>
-          </View>
+            </ScrollReveal>
 
-          {/* Notion Calendar–Style Interactive Feature Switcher Tabs */}
-          <View
-            style={{
-              marginTop: 40,
-              flexDirection: "row",
-              flexWrap: "wrap",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              padding: 6,
-              borderRadius: 16,
-              backgroundColor: "#F1F5F9",
-              borderWidth: 1,
-              borderColor: "#E2E8F0",
-            }}
-          >
-            {HERO_SHOWCASES.map((tab) => {
-              const active = tab.key === activeHeroTab;
-              return (
+            {/* Staggered Entrance 3: Supporting Lead Copy */}
+            <ScrollReveal
+              scrollY={scrollY}
+              viewportHeight={viewportHeight}
+              immediate
+              delayMs={160}
+              distance={26}
+            >
+              <Text
+                style={{
+                  marginTop: 18,
+                  color: "#334155",
+                  fontSize: isDesktop ? 20 : 17,
+                  lineHeight: isDesktop ? 30 : 26,
+                  fontFamily: "Inter_400Regular",
+                  textAlign: "center",
+                  maxWidth: 720,
+                }}
+              >
+                One shared link from your course rep puts every lecture, venue change, assignment,
+                CBT exam, and reading session on your phone—with reminders that work even when data
+                is off.
+              </Text>
+            </ScrollReveal>
+
+            {/* Staggered Entrance 4: Hero Primary CTAs */}
+            <ScrollReveal
+              scrollY={scrollY}
+              viewportHeight={viewportHeight}
+              immediate
+              delayMs={240}
+              distance={24}
+              style={{ width: isTablet ? "auto" : "100%" }}
+            >
+              <View
+                style={{
+                  marginTop: 28,
+                  flexDirection: isTablet ? "row" : "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 12,
+                  width: isTablet ? "auto" : "100%",
+                }}
+              >
                 <Pressable
-                  key={tab.key}
-                  onPress={() => setActiveHeroTab(tab.key)}
+                  onPress={() => Linking.openURL(APP_STORE_SEARCH_URL)}
                   style={{
-                    paddingHorizontal: 16,
-                    paddingVertical: 9,
+                    width: isTablet ? "auto" : "100%",
+                    paddingHorizontal: 24,
+                    paddingVertical: 14,
                     borderRadius: 12,
-                    backgroundColor: active ? "#FFFFFF" : "transparent",
-                    borderWidth: 1,
-                    borderColor: active ? "#CBD5E1" : "transparent",
-                    shadowColor: "#0F172A",
-                    shadowOffset: { width: 0, height: active ? 2 : 0 },
-                    shadowOpacity: active ? 0.06 : 0,
-                    shadowRadius: 6,
+                    backgroundColor: "#4F46E5",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 10,
+                    shadowColor: "#4F46E5",
+                    shadowOffset: { width: 0, height: 8 },
+                    shadowOpacity: 0.25,
+                    shadowRadius: 16,
+                  }}
+                >
+                  <Smartphone size={18} color="#FFFFFF" />
+                  <Text
+                    style={{
+                      color: "#FFFFFF",
+                      fontSize: 16,
+                      lineHeight: 20,
+                      fontFamily: "Inter_600SemiBold",
+                    }}
+                  >
+                    Download on the App Store
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  onPress={() => router.push("/setup/welcome?mode=signup" as any)}
+                  style={{
+                    width: isTablet ? "auto" : "100%",
+                    paddingHorizontal: 22,
+                    paddingVertical: 14,
+                    borderRadius: 12,
+                    backgroundColor: "#0F172A",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
                   }}
                 >
                   <Text
                     style={{
-                      color: active ? "#4F46E5" : "#475569",
-                      fontSize: 14,
+                      color: "#FFFFFF",
+                      fontSize: 16,
                       lineHeight: 20,
-                      fontFamily: active ? "Inter_600SemiBold" : "Inter_500Medium",
+                      fontFamily: "Inter_600SemiBold",
                     }}
                   >
-                    {tab.label}
+                    Open web companion
                   </Text>
+                  <ArrowRight size={17} color="#FFFFFF" />
                 </Pressable>
-              );
-            })}
-          </View>
 
-          {/* Active Feature Caption */}
-          <Text
-            style={{
-              marginTop: 16,
-              color: "#475569",
-              fontSize: 15,
-              lineHeight: 22,
-              fontFamily: "Inter_400Regular",
-              textAlign: "center",
-              maxWidth: 680,
-            }}
-          >
-            {currentHero.caption}
-          </Text>
-
-          {/* Giant 3-Screen Showcase Stage (Real 720x1600 TT Screenshots) */}
-          <View
-            style={{
-              marginTop: 28,
-              width: "100%",
-              paddingVertical: isDesktop ? 36 : 24,
-              paddingHorizontal: isDesktop ? 32 : 16,
-              borderRadius: 28,
-              backgroundColor: "#F8FAFC",
-              borderWidth: 1,
-              borderColor: "#E2E8F0",
-              alignItems: "center",
-            }}
-          >
-            <View
-              style={{
-                flexDirection: isDesktop ? "row" : "column",
-                alignItems: isDesktop ? "flex-end" : "center",
-                justifyContent: "center",
-                gap: isDesktop ? 28 : 32,
-              }}
-            >
-              {/* Left Companion Screen */}
-              {isDesktop ? (
-                <PhoneScreenshotFrame
-                  source={currentHero.left.source}
-                  width={heroSideWidth}
-                  tag={currentHero.left.tag}
-                  title={currentHero.left.title}
-                  accentColor={currentHero.tintText}
-                  accentBg={currentHero.tintBg}
-                />
-              ) : null}
-
-              {/* Center Primary Screen */}
-              <PhoneScreenshotFrame
-                source={currentHero.center.source}
-                width={heroCenterWidth}
-                tag={currentHero.center.tag}
-                title={currentHero.center.title}
-                elevated
-                accentColor={currentHero.tintText}
-                accentBg={currentHero.tintBg}
-              />
-
-              {/* Right Companion Screen */}
-              {isDesktop ? (
-                <PhoneScreenshotFrame
-                  source={currentHero.right.source}
-                  width={heroSideWidth}
-                  tag={currentHero.right.tag}
-                  title={currentHero.right.title}
-                  accentColor={currentHero.tintText}
-                  accentBg={currentHero.tintBg}
-                />
-              ) : null}
-
-              {/* On Mobile/Tablet, show the 2 companion screens side-by-side below the main screen */}
-              {!isDesktop ? (
-                <View
+                <Pressable
+                  onPress={() => handlePreviewCode("CSC3X9")}
                   style={{
-                    flexDirection: isTablet ? "row" : "column",
+                    width: isTablet ? "auto" : "100%",
+                    paddingHorizontal: 20,
+                    paddingVertical: 14,
+                    borderRadius: 12,
+                    backgroundColor: "#F8FAFC",
+                    borderWidth: 1,
+                    borderColor: "#CBD5E1",
+                    flexDirection: "row",
                     alignItems: "center",
                     justifyContent: "center",
-                    gap: 24,
+                    gap: 8,
                   }}
                 >
-                  <PhoneScreenshotFrame
-                    source={currentHero.left.source}
-                    width={isTablet ? 225 : heroCenterWidth}
-                    tag={currentHero.left.tag}
-                    title={currentHero.left.title}
-                    accentColor={currentHero.tintText}
-                    accentBg={currentHero.tintBg}
-                  />
-                  <PhoneScreenshotFrame
-                    source={currentHero.right.source}
-                    width={isTablet ? 225 : heroCenterWidth}
-                    tag={currentHero.right.tag}
-                    title={currentHero.right.title}
-                    accentColor={currentHero.tintText}
-                    accentBg={currentHero.tintBg}
-                  />
-                </View>
-              ) : null}
-            </View>
-          </View>
-
-          {/* Quick Trust & Capability Strip */}
-          <View
-            style={{
-              marginTop: 28,
-              flexDirection: "row",
-              flexWrap: "wrap",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: isDesktop ? 32 : 16,
-            }}
-          >
-            {[
-              "No account needed to preview a class link",
-              "Works offline on campus with local SQLite",
-              "Supports main class, carry-overs & electives",
-              "Light and dark mode built in",
-            ].map((point) => (
-              <View key={point} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <CheckCircle2 size={16} color="#16A34A" />
-                <Text
-                  style={{
-                    color: "#334155",
-                    fontSize: 14,
-                    lineHeight: 20,
-                    fontFamily: "Inter_500Medium",
-                  }}
-                >
-                  {point}
-                </Text>
+                  <Text
+                    style={{
+                      color: "#0F172A",
+                      fontSize: 15,
+                      lineHeight: 20,
+                      fontFamily: "Inter_600SemiBold",
+                    }}
+                  >
+                    Preview class CSC3X9
+                  </Text>
+                </Pressable>
               </View>
-            ))}
-          </View>
-        </View>
-      </View>
+            </ScrollReveal>
 
-      {/* ===================================================================== */}
-      {/* 3. CHAPTER 1: COURSE REP SHARING & LIVE VENUE BROADCASTS              */}
-      {/* ===================================================================== */}
-      <View
-        style={{
-          width: "100%",
-          maxWidth: 1200,
-          alignSelf: "center",
-          paddingHorizontal: isDesktop ? 32 : 20,
-          paddingVertical: isDesktop ? 88 : 56,
-        }}
-      >
-        <View style={{ maxWidth: 740 }}>
-          <View
-            style={{
-              alignSelf: "flex-start",
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 8,
-              paddingHorizontal: 12,
-              paddingVertical: 5,
-              borderRadius: 999,
-              backgroundColor: "#EEF2FF",
-              marginBottom: 14,
-            }}
-          >
-            <Users size={14} color="#4F46E5" />
-            <Text
-              style={{
-                color: "#4F46E5",
-                fontSize: 12,
-                lineHeight: 16,
-                fontFamily: "Inter_600SemiBold",
-              }}
+            {/* Staggered Entrance 5: Interactive Feature Switcher Tabs */}
+            <ScrollReveal
+              scrollY={scrollY}
+              viewportHeight={viewportHeight}
+              immediate
+              delayMs={320}
+              distance={22}
+              style={{ alignItems: "center" }}
             >
-              Shared classes · Course rep broadcasts
-            </Text>
+              <View
+                style={{
+                  marginTop: 40,
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  padding: 6,
+                  borderRadius: 16,
+                  backgroundColor: "#F1F5F9",
+                  borderWidth: 1,
+                  borderColor: "#E2E8F0",
+                }}
+              >
+                {HERO_SHOWCASES.map((tab) => {
+                  const active = tab.key === activeHeroTab;
+                  return (
+                    <Pressable
+                      key={tab.key}
+                      onPress={() => handleSelectHeroTab(tab.key)}
+                      style={{
+                        paddingHorizontal: 16,
+                        paddingVertical: 9,
+                        borderRadius: 12,
+                        backgroundColor: active ? "#FFFFFF" : "transparent",
+                        borderWidth: 1,
+                        borderColor: active ? "#CBD5E1" : "transparent",
+                        shadowColor: "#0F172A",
+                        shadowOffset: { width: 0, height: active ? 2 : 0 },
+                        shadowOpacity: active ? 0.06 : 0,
+                        shadowRadius: 6,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: active ? "#4F46E5" : "#475569",
+                          fontSize: 14,
+                          lineHeight: 20,
+                          fontFamily: active ? "Inter_600SemiBold" : "Inter_500Medium",
+                        }}
+                      >
+                        {tab.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              {/* Active Feature Caption */}
+              <Text
+                style={{
+                  marginTop: 16,
+                  color: "#475569",
+                  fontSize: 15,
+                  lineHeight: 22,
+                  fontFamily: "Inter_400Regular",
+                  textAlign: "center",
+                  maxWidth: 680,
+                }}
+              >
+                {currentHero.caption}
+              </Text>
+            </ScrollReveal>
+
+            {/* Staggered Entrance 6: Giant 3-Screen Showcase Stage with Scroll Parallax */}
+            <ScrollReveal
+              scrollY={scrollY}
+              viewportHeight={viewportHeight}
+              immediate
+              delayMs={400}
+              direction="scale"
+              style={{ width: "100%" }}
+            >
+              <View
+                style={
+                  {
+                    marginTop: 28,
+                    width: "100%",
+                    paddingVertical: isDesktop ? 36 : 24,
+                    paddingHorizontal: isDesktop ? 32 : 16,
+                    borderRadius: 28,
+                    backgroundColor: "#F8FAFC",
+                    borderWidth: 1,
+                    borderColor: "#E2E8F0",
+                    alignItems: "center",
+                    opacity: heroTabOpacity,
+                    transform: [{ translateY: heroTabTranslateY }, { scale: heroTabScale }],
+                    transitionProperty: "opacity, transform",
+                    transitionDuration: "420ms",
+                    transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
+                  } as any
+                }
+              >
+                <View
+                  style={{
+                    flexDirection: isDesktop ? "row" : "column",
+                    alignItems: isDesktop ? "flex-end" : "center",
+                    justifyContent: "center",
+                    gap: isDesktop ? 28 : 32,
+                  }}
+                >
+                  {/* Left Companion Screen with Scroll Fan-Out Parallax */}
+                  {isDesktop ? (
+                    <View
+                      style={{
+                        transform: [
+                          { translateX: leftPhoneTranslateX },
+                          { translateY: leftPhoneTranslateY },
+                          { rotate: leftPhoneRotate },
+                        ],
+                      }}
+                    >
+                      <PhoneScreenshotFrame
+                        source={currentHero.left.source}
+                        width={heroSideWidth}
+                        tag={currentHero.left.tag}
+                        title={currentHero.left.title}
+                        accentColor={currentHero.tintText}
+                        accentBg={currentHero.tintBg}
+                      />
+                    </View>
+                  ) : null}
+
+                  {/* Center Primary Screen with Upward Scroll Parallax */}
+                  <View
+                    style={{
+                      transform: [
+                        { translateY: centerPhoneTranslateY },
+                        { scale: centerPhoneScale },
+                      ],
+                    }}
+                  >
+                    <PhoneScreenshotFrame
+                      source={currentHero.center.source}
+                      width={heroCenterWidth}
+                      tag={currentHero.center.tag}
+                      title={currentHero.center.title}
+                      elevated
+                      accentColor={currentHero.tintText}
+                      accentBg={currentHero.tintBg}
+                    />
+                  </View>
+
+                  {/* Right Companion Screen with Scroll Fan-Out Parallax */}
+                  {isDesktop ? (
+                    <View
+                      style={{
+                        transform: [
+                          { translateX: rightPhoneTranslateX },
+                          { translateY: rightPhoneTranslateY },
+                          { rotate: rightPhoneRotate },
+                        ],
+                      }}
+                    >
+                      <PhoneScreenshotFrame
+                        source={currentHero.right.source}
+                        width={heroSideWidth}
+                        tag={currentHero.right.tag}
+                        title={currentHero.right.title}
+                        accentColor={currentHero.tintText}
+                        accentBg={currentHero.tintBg}
+                      />
+                    </View>
+                  ) : null}
+
+                  {/* On Mobile/Tablet, show the 2 companion screens side-by-side below the main screen */}
+                  {!isDesktop ? (
+                    <View
+                      style={{
+                        flexDirection: isTablet ? "row" : "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 24,
+                      }}
+                    >
+                      <PhoneScreenshotFrame
+                        source={currentHero.left.source}
+                        width={isTablet ? 225 : heroCenterWidth}
+                        tag={currentHero.left.tag}
+                        title={currentHero.left.title}
+                        accentColor={currentHero.tintText}
+                        accentBg={currentHero.tintBg}
+                      />
+                      <PhoneScreenshotFrame
+                        source={currentHero.right.source}
+                        width={isTablet ? 225 : heroCenterWidth}
+                        tag={currentHero.right.tag}
+                        title={currentHero.right.title}
+                        accentColor={currentHero.tintText}
+                        accentBg={currentHero.tintBg}
+                      />
+                    </View>
+                  ) : null}
+                </View>
+              </View>
+            </ScrollReveal>
+
+            {/* Quick Trust & Capability Strip */}
+            <ScrollReveal
+              scrollY={scrollY}
+              viewportHeight={viewportHeight}
+              delayMs={100}
+              distance={20}
+            >
+              <View
+                style={{
+                  marginTop: 28,
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: isDesktop ? 32 : 16,
+                }}
+              >
+                {[
+                  "No account needed to preview a class link",
+                  "Works offline on campus with local SQLite",
+                  "Supports main class, carry-overs & electives",
+                  "Light and dark mode built in",
+                ].map((point) => (
+                  <View key={point} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <CheckCircle2 size={16} color="#16A34A" />
+                    <Text
+                      style={{
+                        color: "#334155",
+                        fontSize: 14,
+                        lineHeight: 20,
+                        fontFamily: "Inter_500Medium",
+                      }}
+                    >
+                      {point}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </ScrollReveal>
           </View>
-
-          <Text
-            style={{
-              color: "#0F172A",
-              fontSize: isDesktop ? 40 : 30,
-              lineHeight: isDesktop ? 48 : 38,
-              fontFamily: "Inter_700Bold",
-              letterSpacing: -0.6,
-            }}
-          >
-            One link from your course rep. Everyone is on the same timetable.
-          </Text>
-
-          <Text
-            style={{
-              marginTop: 14,
-              color: "#334155",
-              fontSize: isDesktop ? 18 : 16,
-              lineHeight: isDesktop ? 28 : 24,
-              fontFamily: "Inter_400Regular",
-            }}
-          >
-            Stop digging through 300 WhatsApp messages for a blurred PDF timetable. When your course
-            rep moves CSC 301 from LT1 to LT2 or cancels a morning lecture, every follower gets an
-            instant change notice and an updated reminder.
-          </Text>
         </View>
 
-        {/* 3-Up Screenshot Story Card Grid */}
-        <View
-          style={{
-            marginTop: 40,
-            flexDirection: isDesktop ? "row" : "column",
-            alignItems: "stretch",
-            justifyContent: "space-between",
-            gap: 24,
-          }}
-        >
-          {/* Step 1 Card */}
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: "#FFFFFF",
-              borderRadius: 24,
-              padding: 24,
-              borderWidth: 1,
-              borderColor: "#E2E8F0",
-              alignItems: "center",
-            }}
-          >
-            <PhoneScreenshotFrame
-              source={screenQrCard}
-              width={chapterThreeUpWidth}
-              tag="1 · Share in one tap"
-              title="Post QR card to WhatsApp status or projector"
-              subtitle="Classmates scan the QR card or enter the 6-character share code CSC3X9."
-            />
-          </View>
-
-          {/* Step 2 Card */}
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: "#FFFFFF",
-              borderRadius: 24,
-              padding: 24,
-              borderWidth: 1,
-              borderColor: "#E2E8F0",
-              alignItems: "center",
-            }}
-          >
-            <PhoneScreenshotFrame
-              source={screenMoveClass}
-              width={chapterThreeUpWidth}
-              tag="2 · Rep moves one class"
-              title="Change Fri 6 Nov only without breaking the week"
-              subtitle="Reps move a single lecture to LT2 or cancel it in seconds. All 128 followers are notified."
-              accentColor="#B45309"
-              accentBg="#FEF3C7"
-            />
-          </View>
-
-          {/* Step 3 Card */}
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: "#FFFFFF",
-              borderRadius: 24,
-              padding: 24,
-              borderWidth: 1,
-              borderColor: "#E2E8F0",
-              alignItems: "center",
-            }}
-          >
-            <PhoneScreenshotFrame
-              source={screenClassCancelled}
-              width={chapterThreeUpWidth}
-              tag="3 · Followers see it right away"
-              title="Cancelled & moved lectures stand out clearly"
-              subtitle="Earlier reminders are corrected automatically so nobody walks to an empty hall."
-              accentColor="#166534"
-              accentBg="#DCFCE7"
-            />
-          </View>
-        </View>
-      </View>
-
-      {/* ===================================================================== */}
-      {/* 4. CHAPTER 2: 4-IN-1 STUDENT TIMETABLE (BENTO SCREENSHOT GRID)        */}
-      {/* ===================================================================== */}
-      <View
-        style={{
-          width: "100%",
-          backgroundColor: "#FFFFFF",
-          borderTopWidth: 1,
-          borderBottomWidth: 1,
-          borderColor: "#E2E8F0",
-        }}
-      >
+        {/* =================================================================== */}
+        {/* 3. CHAPTER 1: COURSE REP SHARING & LIVE VENUE BROADCASTS            */}
+        {/* =================================================================== */}
         <View
           style={{
             width: "100%",
@@ -1091,160 +1227,202 @@ export function WebLandingPage() {
             paddingVertical: isDesktop ? 88 : 56,
           }}
         >
-          <View style={{ maxWidth: 760 }}>
-            <View
-              style={{
-                alignSelf: "flex-start",
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 8,
-                paddingHorizontal: 12,
-                paddingVertical: 5,
-                borderRadius: 999,
-                backgroundColor: "#EDE9FE",
-                marginBottom: 14,
-              }}
-            >
-              <Layers size={14} color="#5B21B6" />
-              <Text
+          <ScrollReveal scrollY={scrollY} viewportHeight={viewportHeight} distance={32}>
+            <View style={{ maxWidth: 740 }}>
+              <View
                 style={{
-                  color: "#5B21B6",
-                  fontSize: 12,
-                  lineHeight: 16,
-                  fontFamily: "Inter_600SemiBold",
+                  alignSelf: "flex-start",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 8,
+                  paddingHorizontal: 12,
+                  paddingVertical: 5,
+                  borderRadius: 999,
+                  backgroundColor: "#EEF2FF",
+                  marginBottom: 14,
                 }}
               >
-                Multi-calendar student life
+                <Users size={14} color="#4F46E5" />
+                <Text
+                  style={{
+                    color: "#4F46E5",
+                    fontSize: 12,
+                    lineHeight: 16,
+                    fontFamily: "Inter_600SemiBold",
+                  }}
+                >
+                  Shared classes · Course rep broadcasts
+                </Text>
+              </View>
+
+              <Text
+                style={{
+                  color: "#0F172A",
+                  fontSize: isDesktop ? 40 : 30,
+                  lineHeight: isDesktop ? 48 : 38,
+                  fontFamily: "Inter_700Bold",
+                  letterSpacing: -0.6,
+                }}
+              >
+                One link from your course rep. Everyone is on the same timetable.
+              </Text>
+
+              <Text
+                style={{
+                  marginTop: 14,
+                  color: "#334155",
+                  fontSize: isDesktop ? 18 : 16,
+                  lineHeight: isDesktop ? 28 : 24,
+                  fontFamily: "Inter_400Regular",
+                }}
+              >
+                Stop digging through 300 WhatsApp messages for a blurred PDF timetable. When your
+                course rep moves CSC 301 from LT1 to LT2 or cancels a morning lecture, every
+                follower gets an instant change notice and an updated reminder.
               </Text>
             </View>
+          </ScrollReveal>
 
-            <Text
-              style={{
-                color: "#0F172A",
-                fontSize: isDesktop ? 40 : 30,
-                lineHeight: isDesktop ? 48 : 38,
-                fontFamily: "Inter_700Bold",
-                letterSpacing: -0.6,
-              }}
-            >
-              Lectures, CBT exams, personal reading, and carry-overs in one calm view.
-            </Text>
-
-            <Text
-              style={{
-                marginTop: 14,
-                color: "#334155",
-                fontSize: isDesktop ? 18 : 16,
-                lineHeight: isDesktop ? 28 : 24,
-                fontFamily: "Inter_400Regular",
-              }}
-            >
-              University life is more than a static weekly lecture grid. TT brings your department
-              timetable, carry-over courses from other levels, exam seat numbers, and personal study
-              blocks together.
-            </Text>
-          </View>
-
-          {/* 2x2 Notion-Style Feature Bento Grid with Real Screenshots */}
+          {/* 3-Up Screenshot Story Card Grid with Staggered Scroll Reveals */}
           <View
             style={{
               marginTop: 40,
               flexDirection: isDesktop ? "row" : "column",
-              flexWrap: "wrap",
+              alignItems: "stretch",
+              justifyContent: "space-between",
               gap: 24,
             }}
           >
-            {/* Bento Card 1: Classes & Calendar */}
-            <View
-              style={{
-                flex: 1,
-                minWidth: isDesktop ? 520 : "100%",
-                backgroundColor: "#F8FAFC",
-                borderRadius: 24,
-                padding: isDesktop ? 32 : 24,
-                borderWidth: 1,
-                borderColor: "#E2E8F0",
-                flexDirection: isTablet ? "row" : "column",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 24,
-              }}
+            {/* Step 1 Card */}
+            <ScrollReveal
+              scrollY={scrollY}
+              viewportHeight={viewportHeight}
+              delayMs={0}
+              distance={40}
+              style={{ flex: 1 }}
             >
-              <View style={{ flex: 1 }}>
-                <View
-                  style={{
-                    alignSelf: "flex-start",
-                    paddingHorizontal: 10,
-                    paddingVertical: 4,
-                    borderRadius: 6,
-                    backgroundColor: "#EEF2FF",
-                    marginBottom: 12,
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: "#4F46E5",
-                      fontSize: 12,
-                      lineHeight: 16,
-                      fontFamily: "Inter_600SemiBold",
-                    }}
-                  >
-                    Classes · List, Day, Week & Month
-                  </Text>
-                </View>
-                <Text
-                  style={{
-                    color: "#0F172A",
-                    fontSize: 22,
-                    lineHeight: 30,
-                    fontFamily: "Inter_700Bold",
-                  }}
-                >
-                  See your whole semester at a glance
-                </Text>
-                <Text
-                  style={{
-                    marginTop: 10,
-                    color: "#475569",
-                    fontSize: 15,
-                    lineHeight: 23,
-                    fontFamily: "Inter_400Regular",
-                  }}
-                >
-                  Flip between a clean daily card list and a full month grid. Busy-day dots and 4px
-                  course colour stripes make every lecture easy to scan in sunlight.
-                </Text>
-              </View>
-              <PhoneScreenshotFrame source={screenClassesMonth} width={bentoPhoneWidth} />
-            </View>
+              <HoverLiftCard
+                style={{
+                  flex: 1,
+                  backgroundColor: "#FFFFFF",
+                  borderRadius: 24,
+                  padding: 24,
+                  borderWidth: 1,
+                  borderColor: "#E2E8F0",
+                  alignItems: "center",
+                }}
+              >
+                <PhoneScreenshotFrame
+                  source={screenQrCard}
+                  width={chapterThreeUpWidth}
+                  tag="1 · Share in one tap"
+                  title="Post QR card to WhatsApp status or projector"
+                  subtitle="Classmates scan the QR card or enter the 6-character share code CSC3X9."
+                />
+              </HoverLiftCard>
+            </ScrollReveal>
 
-            {/* Bento Card 2: Exams */}
-            <View
-              style={{
-                flex: 1,
-                minWidth: isDesktop ? 520 : "100%",
-                backgroundColor: "#F8FAFC",
-                borderRadius: 24,
-                padding: isDesktop ? 32 : 24,
-                borderWidth: 1,
-                borderColor: "#E2E8F0",
-                flexDirection: isTablet ? "row" : "column",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 24,
-              }}
+            {/* Step 2 Card */}
+            <ScrollReveal
+              scrollY={scrollY}
+              viewportHeight={viewportHeight}
+              delayMs={130}
+              distance={40}
+              style={{ flex: 1 }}
             >
-              <View style={{ flex: 1 }}>
+              <HoverLiftCard
+                style={{
+                  flex: 1,
+                  backgroundColor: "#FFFFFF",
+                  borderRadius: 24,
+                  padding: 24,
+                  borderWidth: 1,
+                  borderColor: "#E2E8F0",
+                  alignItems: "center",
+                }}
+              >
+                <PhoneScreenshotFrame
+                  source={screenMoveClass}
+                  width={chapterThreeUpWidth}
+                  tag="2 · Rep moves one class"
+                  title="Change Fri 6 Nov only without breaking the week"
+                  subtitle="Reps move a single lecture to LT2 or cancel it in seconds. All 128 followers are notified."
+                  accentColor="#B45309"
+                  accentBg="#FEF3C7"
+                />
+              </HoverLiftCard>
+            </ScrollReveal>
+
+            {/* Step 3 Card */}
+            <ScrollReveal
+              scrollY={scrollY}
+              viewportHeight={viewportHeight}
+              delayMs={260}
+              distance={40}
+              style={{ flex: 1 }}
+            >
+              <HoverLiftCard
+                style={{
+                  flex: 1,
+                  backgroundColor: "#FFFFFF",
+                  borderRadius: 24,
+                  padding: 24,
+                  borderWidth: 1,
+                  borderColor: "#E2E8F0",
+                  alignItems: "center",
+                }}
+              >
+                <PhoneScreenshotFrame
+                  source={screenClassCancelled}
+                  width={chapterThreeUpWidth}
+                  tag="3 · Followers see it right away"
+                  title="Cancelled & moved lectures stand out clearly"
+                  subtitle="Earlier reminders are corrected automatically so nobody walks to an empty hall."
+                  accentColor="#166534"
+                  accentBg="#DCFCE7"
+                />
+              </HoverLiftCard>
+            </ScrollReveal>
+          </View>
+        </View>
+
+        {/* =================================================================== */}
+        {/* 4. CHAPTER 2: 4-IN-1 STUDENT TIMETABLE (BENTO SCREENSHOT GRID)      */}
+        {/* =================================================================== */}
+        <View
+          style={{
+            width: "100%",
+            backgroundColor: "#FFFFFF",
+            borderTopWidth: 1,
+            borderBottomWidth: 1,
+            borderColor: "#E2E8F0",
+          }}
+        >
+          <View
+            style={{
+              width: "100%",
+              maxWidth: 1200,
+              alignSelf: "center",
+              paddingHorizontal: isDesktop ? 32 : 20,
+              paddingVertical: isDesktop ? 88 : 56,
+            }}
+          >
+            <ScrollReveal scrollY={scrollY} viewportHeight={viewportHeight} distance={32}>
+              <View style={{ maxWidth: 760 }}>
                 <View
                   style={{
                     alignSelf: "flex-start",
-                    paddingHorizontal: 10,
-                    paddingVertical: 4,
-                    borderRadius: 6,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 5,
+                    borderRadius: 999,
                     backgroundColor: "#EDE9FE",
-                    marginBottom: 12,
+                    marginBottom: 14,
                   }}
                 >
+                  <Layers size={14} color="#5B21B6" />
                   <Text
                     style={{
                       color: "#5B21B6",
@@ -1253,175 +1431,519 @@ export function WebLandingPage() {
                       fontFamily: "Inter_600SemiBold",
                     }}
                   >
-                    Exams · Written & CBT
+                    Multi-calendar student life
                   </Text>
                 </View>
+
                 <Text
                   style={{
                     color: "#0F172A",
-                    fontSize: 22,
-                    lineHeight: 30,
+                    fontSize: isDesktop ? 40 : 30,
+                    lineHeight: isDesktop ? 48 : 38,
                     fontFamily: "Inter_700Bold",
+                    letterSpacing: -0.6,
                   }}
                 >
-                  Count down to every paper with seat numbers
+                  Lectures, CBT exams, personal reading, and carry-overs in one calm view.
                 </Text>
+
                 <Text
                   style={{
-                    marginTop: 10,
-                    color: "#475569",
-                    fontSize: 15,
-                    lineHeight: 23,
+                    marginTop: 14,
+                    color: "#334155",
+                    fontSize: isDesktop ? 18 : 16,
+                    lineHeight: isDesktop ? 28 : 24,
                     fontFamily: "Inter_400Regular",
                   }}
                 >
-                  See how many days remain until your first paper, track moved CBT times, and store
-                  your private seat number where only you can see it.
+                  University life is more than a static weekly lecture grid. TT brings your
+                  department timetable, carry-over courses from other levels, exam seat numbers, and
+                  personal study blocks together.
                 </Text>
               </View>
-              <PhoneScreenshotFrame source={screenExams} width={bentoPhoneWidth} />
-            </View>
+            </ScrollReveal>
 
-            {/* Bento Card 3: Reading Timetable */}
+            {/* 2x2 Notion-Style Feature Bento Grid with Directional Scroll Reveals */}
             <View
               style={{
-                flex: 1,
-                minWidth: isDesktop ? 520 : "100%",
-                backgroundColor: "#F8FAFC",
-                borderRadius: 24,
-                padding: isDesktop ? 32 : 24,
-                borderWidth: 1,
-                borderColor: "#E2E8F0",
-                flexDirection: isTablet ? "row" : "column",
-                alignItems: "center",
-                justifyContent: "space-between",
+                marginTop: 40,
+                flexDirection: isDesktop ? "row" : "column",
+                flexWrap: "wrap",
                 gap: 24,
               }}
             >
-              <View style={{ flex: 1 }}>
-                <View
+              {/* Bento Card 1: Classes & Calendar */}
+              <ScrollReveal
+                scrollY={scrollY}
+                viewportHeight={viewportHeight}
+                delayMs={0}
+                direction={isDesktop ? "left" : "up"}
+                distance={36}
+                style={{ flex: 1, minWidth: isDesktop ? 520 : "100%" }}
+              >
+                <HoverLiftCard
                   style={{
-                    alignSelf: "flex-start",
-                    paddingHorizontal: 10,
-                    paddingVertical: 4,
-                    borderRadius: 6,
-                    backgroundColor: "#CCFBF1",
-                    marginBottom: 12,
+                    flex: 1,
+                    backgroundColor: "#F8FAFC",
+                    borderRadius: 24,
+                    padding: isDesktop ? 32 : 24,
+                    borderWidth: 1,
+                    borderColor: "#E2E8F0",
+                    flexDirection: isTablet ? "row" : "column",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 24,
                   }}
                 >
-                  <Text
-                    style={{
-                      color: "#0F766E",
-                      fontSize: 12,
-                      lineHeight: 16,
-                      fontFamily: "Inter_600SemiBold",
-                    }}
-                  >
-                    Reading · Personal study blocks
-                  </Text>
-                </View>
-                <Text
-                  style={{
-                    color: "#0F172A",
-                    fontSize: 22,
-                    lineHeight: 30,
-                    fontFamily: "Inter_700Bold",
-                  }}
-                >
-                  Build a personal reading habit that sticks
-                </Text>
-                <Text
-                  style={{
-                    marginTop: 10,
-                    color: "#475569",
-                    fontSize: 15,
-                    lineHeight: 23,
-                    fontFamily: "Inter_400Regular",
-                  }}
-                >
-                  Schedule quiet library or hostel study sessions around your lectures, check off
-                  past questions, and keep your weekly reading streak alive.
-                </Text>
-              </View>
-              <PhoneScreenshotFrame source={screenReading} width={bentoPhoneWidth} />
-            </View>
+                  <View style={{ flex: 1 }}>
+                    <View
+                      style={{
+                        alignSelf: "flex-start",
+                        paddingHorizontal: 10,
+                        paddingVertical: 4,
+                        borderRadius: 6,
+                        backgroundColor: "#EEF2FF",
+                        marginBottom: 12,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: "#4F46E5",
+                          fontSize: 12,
+                          lineHeight: 16,
+                          fontFamily: "Inter_600SemiBold",
+                        }}
+                      >
+                        Classes · List, Day, Week & Month
+                      </Text>
+                    </View>
+                    <Text
+                      style={{
+                        color: "#0F172A",
+                        fontSize: 22,
+                        lineHeight: 30,
+                        fontFamily: "Inter_700Bold",
+                      }}
+                    >
+                      See your whole semester at a glance
+                    </Text>
+                    <Text
+                      style={{
+                        marginTop: 10,
+                        color: "#475569",
+                        fontSize: 15,
+                        lineHeight: 23,
+                        fontFamily: "Inter_400Regular",
+                      }}
+                    >
+                      Flip between a clean daily card list and a full month grid. Busy-day dots and
+                      4px course colour stripes make every lecture easy to scan in sunlight.
+                    </Text>
+                  </View>
+                  <PhoneScreenshotFrame source={screenClassesMonth} width={bentoPhoneWidth} />
+                </HoverLiftCard>
+              </ScrollReveal>
 
-            {/* Bento Card 4: Carry-over & Class Switcher */}
-            <View
-              style={{
-                flex: 1,
-                minWidth: isDesktop ? 520 : "100%",
-                backgroundColor: "#F8FAFC",
-                borderRadius: 24,
-                padding: isDesktop ? 32 : 24,
-                borderWidth: 1,
-                borderColor: "#E2E8F0",
-                flexDirection: isTablet ? "row" : "column",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 24,
-              }}
-            >
-              <View style={{ flex: 1 }}>
-                <View
+              {/* Bento Card 2: Exams */}
+              <ScrollReveal
+                scrollY={scrollY}
+                viewportHeight={viewportHeight}
+                delayMs={120}
+                direction={isDesktop ? "right" : "up"}
+                distance={36}
+                style={{ flex: 1, minWidth: isDesktop ? 520 : "100%" }}
+              >
+                <HoverLiftCard
                   style={{
-                    alignSelf: "flex-start",
-                    paddingHorizontal: 10,
-                    paddingVertical: 4,
-                    borderRadius: 6,
-                    backgroundColor: "#FCE7F3",
-                    marginBottom: 12,
+                    flex: 1,
+                    backgroundColor: "#F8FAFC",
+                    borderRadius: 24,
+                    padding: isDesktop ? 32 : 24,
+                    borderWidth: 1,
+                    borderColor: "#E2E8F0",
+                    flexDirection: isTablet ? "row" : "column",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 24,
                   }}
                 >
-                  <Text
-                    style={{
-                      color: "#9D174D",
-                      fontSize: 12,
-                      lineHeight: 16,
-                      fontFamily: "Inter_600SemiBold",
-                    }}
-                  >
-                    Class switcher · Carry-overs & electives
-                  </Text>
-                </View>
-                <Text
+                  <View style={{ flex: 1 }}>
+                    <View
+                      style={{
+                        alignSelf: "flex-start",
+                        paddingHorizontal: 10,
+                        paddingVertical: 4,
+                        borderRadius: 6,
+                        backgroundColor: "#EDE9FE",
+                        marginBottom: 12,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: "#5B21B6",
+                          fontSize: 12,
+                          lineHeight: 16,
+                          fontFamily: "Inter_600SemiBold",
+                        }}
+                      >
+                        Exams · Written & CBT
+                      </Text>
+                    </View>
+                    <Text
+                      style={{
+                        color: "#0F172A",
+                        fontSize: 22,
+                        lineHeight: 30,
+                        fontFamily: "Inter_700Bold",
+                      }}
+                    >
+                      Count down to every paper with seat numbers
+                    </Text>
+                    <Text
+                      style={{
+                        marginTop: 10,
+                        color: "#475569",
+                        fontSize: 15,
+                        lineHeight: 23,
+                        fontFamily: "Inter_400Regular",
+                      }}
+                    >
+                      See how many days remain until your first paper, track moved CBT times, and
+                      store your private seat number where only you can see it.
+                    </Text>
+                  </View>
+                  <PhoneScreenshotFrame source={screenExams} width={bentoPhoneWidth} />
+                </HoverLiftCard>
+              </ScrollReveal>
+
+              {/* Bento Card 3: Reading Timetable */}
+              <ScrollReveal
+                scrollY={scrollY}
+                viewportHeight={viewportHeight}
+                delayMs={100}
+                direction={isDesktop ? "left" : "up"}
+                distance={36}
+                style={{ flex: 1, minWidth: isDesktop ? 520 : "100%" }}
+              >
+                <HoverLiftCard
                   style={{
-                    color: "#0F172A",
-                    fontSize: 22,
-                    lineHeight: 30,
-                    fontFamily: "Inter_700Bold",
+                    flex: 1,
+                    backgroundColor: "#F8FAFC",
+                    borderRadius: 24,
+                    padding: isDesktop ? 32 : 24,
+                    borderWidth: 1,
+                    borderColor: "#E2E8F0",
+                    flexDirection: isTablet ? "row" : "column",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 24,
                   }}
                 >
-                  Follow carry-over courses from other levels
-                </Text>
-                <Text
+                  <View style={{ flex: 1 }}>
+                    <View
+                      style={{
+                        alignSelf: "flex-start",
+                        paddingHorizontal: 10,
+                        paddingVertical: 4,
+                        borderRadius: 6,
+                        backgroundColor: "#CCFBF1",
+                        marginBottom: 12,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: "#0F766E",
+                          fontSize: 12,
+                          lineHeight: 16,
+                          fontFamily: "Inter_600SemiBold",
+                        }}
+                      >
+                        Reading · Personal study blocks
+                      </Text>
+                    </View>
+                    <Text
+                      style={{
+                        color: "#0F172A",
+                        fontSize: 22,
+                        lineHeight: 30,
+                        fontFamily: "Inter_700Bold",
+                      }}
+                    >
+                      Build a personal reading habit that sticks
+                    </Text>
+                    <Text
+                      style={{
+                        marginTop: 10,
+                        color: "#475569",
+                        fontSize: 15,
+                        lineHeight: 23,
+                        fontFamily: "Inter_400Regular",
+                      }}
+                    >
+                      Schedule quiet library or hostel study sessions around your lectures, check
+                      off past questions, and keep your weekly reading streak alive.
+                    </Text>
+                  </View>
+                  <PhoneScreenshotFrame source={screenReading} width={bentoPhoneWidth} />
+                </HoverLiftCard>
+              </ScrollReveal>
+
+              {/* Bento Card 4: Carry-over & Class Switcher */}
+              <ScrollReveal
+                scrollY={scrollY}
+                viewportHeight={viewportHeight}
+                delayMs={220}
+                direction={isDesktop ? "right" : "up"}
+                distance={36}
+                style={{ flex: 1, minWidth: isDesktop ? 520 : "100%" }}
+              >
+                <HoverLiftCard
                   style={{
-                    marginTop: 10,
-                    color: "#475569",
-                    fontSize: 15,
-                    lineHeight: 23,
-                    fontFamily: "Inter_400Regular",
+                    flex: 1,
+                    backgroundColor: "#F8FAFC",
+                    borderRadius: 24,
+                    padding: isDesktop ? 32 : 24,
+                    borderWidth: 1,
+                    borderColor: "#E2E8F0",
+                    flexDirection: isTablet ? "row" : "column",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 24,
                   }}
                 >
-                  Taking STA 211 with 200L while in 300L? Subscribe to just that course from their
-                  class link and TT warns you immediately if a lecture clashes.
-                </Text>
-              </View>
-              <PhoneScreenshotFrame source={screenClassSwitcher} width={bentoPhoneWidth} />
+                  <View style={{ flex: 1 }}>
+                    <View
+                      style={{
+                        alignSelf: "flex-start",
+                        paddingHorizontal: 10,
+                        paddingVertical: 4,
+                        borderRadius: 6,
+                        backgroundColor: "#FCE7F3",
+                        marginBottom: 12,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: "#9D174D",
+                          fontSize: 12,
+                          lineHeight: 16,
+                          fontFamily: "Inter_600SemiBold",
+                        }}
+                      >
+                        Class switcher · Carry-overs & electives
+                      </Text>
+                    </View>
+                    <Text
+                      style={{
+                        color: "#0F172A",
+                        fontSize: 22,
+                        lineHeight: 30,
+                        fontFamily: "Inter_700Bold",
+                      }}
+                    >
+                      Follow carry-over courses from other levels
+                    </Text>
+                    <Text
+                      style={{
+                        marginTop: 10,
+                        color: "#475569",
+                        fontSize: 15,
+                        lineHeight: 23,
+                        fontFamily: "Inter_400Regular",
+                      }}
+                    >
+                      Taking STA 211 with 200L while in 300L? Subscribe to just that course from
+                      their class link and TT warns you immediately if a lecture clashes.
+                    </Text>
+                  </View>
+                  <PhoneScreenshotFrame source={screenClassSwitcher} width={bentoPhoneWidth} />
+                </HoverLiftCard>
+              </ScrollReveal>
             </View>
           </View>
         </View>
-      </View>
 
-      {/* ===================================================================== */}
-      {/* 5. CHAPTER 3: DARK MODE CONTRAST — REMINDERS, WIDGETS & OFFLINE       */}
-      {/* ===================================================================== */}
-      <View
-        style={{
-          width: "100%",
-          backgroundColor: "#0F172A",
-        }}
-      >
+        {/* =================================================================== */}
+        {/* 5. CHAPTER 3: DARK MODE CONTRAST — REMINDERS, WIDGETS & OFFLINE     */}
+        {/* =================================================================== */}
+        <View
+          style={{
+            width: "100%",
+            backgroundColor: "#0F172A",
+          }}
+        >
+          <View
+            style={{
+              width: "100%",
+              maxWidth: 1200,
+              alignSelf: "center",
+              paddingHorizontal: isDesktop ? 32 : 20,
+              paddingVertical: isDesktop ? 88 : 56,
+            }}
+          >
+            <ScrollReveal scrollY={scrollY} viewportHeight={viewportHeight} distance={32}>
+              <View style={{ maxWidth: 740 }}>
+                <View
+                  style={{
+                    alignSelf: "flex-start",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 5,
+                    borderRadius: 999,
+                    backgroundColor: "rgba(79, 70, 229, 0.25)",
+                    borderWidth: 1,
+                    borderColor: "rgba(129, 140, 248, 0.35)",
+                    marginBottom: 14,
+                  }}
+                >
+                  <Bell size={14} color="#A5B4FC" />
+                  <Text
+                    style={{
+                      color: "#C7D2FE",
+                      fontSize: 12,
+                      lineHeight: 16,
+                      fontFamily: "Inter_600SemiBold",
+                    }}
+                  >
+                    Wall-clock reminders · Offline-first · Home-screen widgets
+                  </Text>
+                </View>
+
+                <Text
+                  style={{
+                    color: "#F8FAFC",
+                    fontSize: isDesktop ? 40 : 30,
+                    lineHeight: isDesktop ? 48 : 38,
+                    fontFamily: "Inter_700Bold",
+                    letterSpacing: -0.6,
+                  }}
+                >
+                  Reminders that tell you what and where—even when campus Wi-Fi drops.
+                </Text>
+
+                <Text
+                  style={{
+                    marginTop: 14,
+                    color: "#CBD5E1",
+                    fontSize: isDesktop ? 18 : 16,
+                    lineHeight: isDesktop ? 28 : 24,
+                    fontFamily: "Inter_400Regular",
+                  }}
+                >
+                  No vague &ldquo;You have a class coming up!&rdquo; popups. TT schedules local
+                  alarms on your phone with the course code, minutes left, and lecture theatre—and
+                  updates them the moment your rep moves or cancels a class.
+                </Text>
+              </View>
+            </ScrollReveal>
+
+            <View
+              style={{
+                marginTop: 40,
+                flexDirection: isDesktop ? "row" : "column",
+                alignItems: "stretch",
+                justifyContent: "space-between",
+                gap: 24,
+              }}
+            >
+              {/* Dark Card 1: Lock screen notifications */}
+              <ScrollReveal
+                scrollY={scrollY}
+                viewportHeight={viewportHeight}
+                delayMs={0}
+                distance={40}
+                style={{ flex: 1 }}
+              >
+                <HoverLiftCard
+                  style={{
+                    flex: 1,
+                    backgroundColor: "#1E293B",
+                    borderRadius: 24,
+                    padding: 24,
+                    borderWidth: 1,
+                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    alignItems: "center",
+                  }}
+                >
+                  <PhoneScreenshotFrame
+                    source={screenLockNotifications}
+                    width={chapterThreeUpWidth}
+                    darkSurface
+                    tag="Lock-screen notices"
+                    title="Plain, specific alerts you can read at a glance"
+                    subtitle="“CSC 301 in 30 min, LT1” · “MTH 301 moved to LT2, 10am” · “Cancelled: CSC 301 at 10am”."
+                  />
+                </HoverLiftCard>
+              </ScrollReveal>
+
+              {/* Dark Card 2: Home-screen widgets */}
+              <ScrollReveal
+                scrollY={scrollY}
+                viewportHeight={viewportHeight}
+                delayMs={130}
+                distance={40}
+                style={{ flex: 1 }}
+              >
+                <HoverLiftCard
+                  style={{
+                    flex: 1,
+                    backgroundColor: "#1E293B",
+                    borderRadius: 24,
+                    padding: 24,
+                    borderWidth: 1,
+                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    alignItems: "center",
+                  }}
+                >
+                  <PhoneScreenshotFrame
+                    source={screenWidgets}
+                    width={chapterThreeUpWidth}
+                    darkSurface
+                    tag="Home-screen widgets"
+                    title="Next class and due work right on your home screen"
+                    subtitle="Widgets read directly from your phone’s local database, so they work offline and update when a class moves."
+                  />
+                </HoverLiftCard>
+              </ScrollReveal>
+
+              {/* Dark Card 3: Offline mode */}
+              <ScrollReveal
+                scrollY={scrollY}
+                viewportHeight={viewportHeight}
+                delayMs={260}
+                distance={40}
+                style={{ flex: 1 }}
+              >
+                <HoverLiftCard
+                  style={{
+                    flex: 1,
+                    backgroundColor: "#1E293B",
+                    borderRadius: 24,
+                    padding: 24,
+                    borderWidth: 1,
+                    borderColor: "rgba(255, 255, 255, 0.1)",
+                    alignItems: "center",
+                  }}
+                >
+                  <PhoneScreenshotFrame
+                    source={screenTodayOffline}
+                    width={chapterThreeUpWidth}
+                    darkSurface
+                    tag="100% offline ready"
+                    title="Never blanks out when you have zero bars"
+                    subtitle="Your timetable, check-ins, and changes are stored on-device and sync automatically when you reconnect."
+                  />
+                </HoverLiftCard>
+              </ScrollReveal>
+            </View>
+          </View>
+        </View>
+
+        {/* =================================================================== */}
+        {/* 6. CHAPTER 4: 75% ATTENDANCE TARGET & GROUP ASSIGNMENT POLLS        */}
+        {/* =================================================================== */}
         <View
           style={{
             width: "100%",
@@ -1431,61 +1953,61 @@ export function WebLandingPage() {
             paddingVertical: isDesktop ? 88 : 56,
           }}
         >
-          <View style={{ maxWidth: 740 }}>
-            <View
-              style={{
-                alignSelf: "flex-start",
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 8,
-                paddingHorizontal: 12,
-                paddingVertical: 5,
-                borderRadius: 999,
-                backgroundColor: "rgba(79, 70, 229, 0.25)",
-                borderWidth: 1,
-                borderColor: "rgba(129, 140, 248, 0.35)",
-                marginBottom: 14,
-              }}
-            >
-              <Bell size={14} color="#A5B4FC" />
-              <Text
+          <ScrollReveal scrollY={scrollY} viewportHeight={viewportHeight} distance={32}>
+            <View style={{ maxWidth: 760 }}>
+              <View
                 style={{
-                  color: "#C7D2FE",
-                  fontSize: 12,
-                  lineHeight: 16,
-                  fontFamily: "Inter_600SemiBold",
+                  alignSelf: "flex-start",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 8,
+                  paddingHorizontal: 12,
+                  paddingVertical: 5,
+                  borderRadius: 999,
+                  backgroundColor: "#DCFCE7",
+                  marginBottom: 14,
                 }}
               >
-                Wall-clock reminders · Offline-first · Home-screen widgets
+                <BarChart2 size={14} color="#166534" />
+                <Text
+                  style={{
+                    color: "#166534",
+                    fontSize: 12,
+                    lineHeight: 16,
+                    fontFamily: "Inter_600SemiBold",
+                  }}
+                >
+                  75% attendance protection · Group work without chaos
+                </Text>
+              </View>
+
+              <Text
+                style={{
+                  color: "#0F172A",
+                  fontSize: isDesktop ? 40 : 30,
+                  lineHeight: isDesktop ? 48 : 38,
+                  fontFamily: "Inter_700Bold",
+                  letterSpacing: -0.6,
+                }}
+              >
+                Protect your exam eligibility and sort out group projects in seconds.
+              </Text>
+
+              <Text
+                style={{
+                  marginTop: 14,
+                  color: "#334155",
+                  fontSize: isDesktop ? 18 : 16,
+                  lineHeight: isDesktop ? 28 : 24,
+                  fontFamily: "Inter_400Regular",
+                }}
+              >
+                Most students only discover they are below 75% attendance when the exam eligibility
+                list is pasted on the department noticeboard. TT checks in after each lecture and
+                tells you exactly how many classes you need to make the cut.
               </Text>
             </View>
-
-            <Text
-              style={{
-                color: "#F8FAFC",
-                fontSize: isDesktop ? 40 : 30,
-                lineHeight: isDesktop ? 48 : 38,
-                fontFamily: "Inter_700Bold",
-                letterSpacing: -0.6,
-              }}
-            >
-              Reminders that tell you what and where—even when campus Wi-Fi drops.
-            </Text>
-
-            <Text
-              style={{
-                marginTop: 14,
-                color: "#CBD5E1",
-                fontSize: isDesktop ? 18 : 16,
-                lineHeight: isDesktop ? 28 : 24,
-                fontFamily: "Inter_400Regular",
-              }}
-            >
-              No vague &ldquo;You have a class coming up!&rdquo; popups. TT schedules local alarms
-              on your phone with the course code, minutes left, and lecture theatre—and updates them
-              the moment your rep moves or cancels a class.
-            </Text>
-          </View>
+          </ScrollReveal>
 
           <View
             style={{
@@ -1496,570 +2018,458 @@ export function WebLandingPage() {
               gap: 24,
             }}
           >
-            {/* Dark Card 1: Lock screen notifications */}
-            <View
-              style={{
-                flex: 1,
-                backgroundColor: "#1E293B",
-                borderRadius: 24,
-                padding: 24,
-                borderWidth: 1,
-                borderColor: "rgba(255, 255, 255, 0.1)",
-                alignItems: "center",
-              }}
+            {/* Attendance Check-in */}
+            <ScrollReveal
+              scrollY={scrollY}
+              viewportHeight={viewportHeight}
+              delayMs={0}
+              distance={40}
+              style={{ flex: 1 }}
             >
-              <PhoneScreenshotFrame
-                source={screenLockNotifications}
-                width={chapterThreeUpWidth}
-                darkSurface
-                tag="Lock-screen notices"
-                title="Plain, specific alerts you can read at a glance"
-                subtitle="“CSC 301 in 30 min, LT1” · “MTH 301 moved to LT2, 10am” · “Cancelled: CSC 301 at 10am”."
-              />
-            </View>
+              <HoverLiftCard
+                style={{
+                  flex: 1,
+                  backgroundColor: "#FFFFFF",
+                  borderRadius: 24,
+                  padding: 24,
+                  borderWidth: 1,
+                  borderColor: "#E2E8F0",
+                  alignItems: "center",
+                }}
+              >
+                <PhoneScreenshotFrame
+                  source={screenCheckIn}
+                  width={chapterThreeUpWidth}
+                  tag="Post-class prompt"
+                  title="“Did you attend Operating Systems?”"
+                  subtitle="10 minutes after lecture ends, tap Attended or Missed—or add an assignment announced in class."
+                />
+              </HoverLiftCard>
+            </ScrollReveal>
 
-            {/* Dark Card 2: Home-screen widgets */}
-            <View
-              style={{
-                flex: 1,
-                backgroundColor: "#1E293B",
-                borderRadius: 24,
-                padding: 24,
-                borderWidth: 1,
-                borderColor: "rgba(255, 255, 255, 0.1)",
-                alignItems: "center",
-              }}
+            {/* Semester Reports & 75% Math */}
+            <ScrollReveal
+              scrollY={scrollY}
+              viewportHeight={viewportHeight}
+              delayMs={130}
+              distance={40}
+              style={{ flex: 1 }}
             >
-              <PhoneScreenshotFrame
-                source={screenWidgets}
-                width={chapterThreeUpWidth}
-                darkSurface
-                tag="Home-screen widgets"
-                title="Next class and due work right on your home screen"
-                subtitle="Widgets read directly from your phone’s local database, so they work offline and update when a class moves."
-              />
-            </View>
+              <HoverLiftCard
+                style={{
+                  flex: 1,
+                  backgroundColor: "#FFFFFF",
+                  borderRadius: 24,
+                  padding: 24,
+                  borderWidth: 1,
+                  borderColor: "#E2E8F0",
+                  alignItems: "center",
+                }}
+              >
+                <PhoneScreenshotFrame
+                  source={screenReports}
+                  width={chapterThreeUpWidth}
+                  tag="Semester reports"
+                  title="“Attend 5 of the remaining 6 classes to finish at 75%”"
+                  subtitle="Course-by-course attendance bars flag danger early so you can recover before exams."
+                  accentColor="#B91C1C"
+                  accentBg="#FEE2E2"
+                />
+              </HoverLiftCard>
+            </ScrollReveal>
 
-            {/* Dark Card 3: Offline mode */}
-            <View
-              style={{
-                flex: 1,
-                backgroundColor: "#1E293B",
-                borderRadius: 24,
-                padding: 24,
-                borderWidth: 1,
-                borderColor: "rgba(255, 255, 255, 0.1)",
-                alignItems: "center",
-              }}
+            {/* Group Assignment Poll */}
+            <ScrollReveal
+              scrollY={scrollY}
+              viewportHeight={viewportHeight}
+              delayMs={260}
+              distance={40}
+              style={{ flex: 1 }}
             >
-              <PhoneScreenshotFrame
-                source={screenTodayOffline}
-                width={chapterThreeUpWidth}
-                darkSurface
-                tag="100% offline ready"
-                title="Never blanks out when you have zero bars"
-                subtitle="Your timetable, check-ins, and changes are stored on-device and sync automatically when you reconnect."
-              />
-            </View>
+              <HoverLiftCard
+                style={{
+                  flex: 1,
+                  backgroundColor: "#FFFFFF",
+                  borderRadius: 24,
+                  padding: 24,
+                  borderWidth: 1,
+                  borderColor: "#E2E8F0",
+                  alignItems: "center",
+                }}
+              >
+                <PhoneScreenshotFrame
+                  source={screenGroupPoll}
+                  width={chapterThreeUpWidth}
+                  tag="Group assignment polls"
+                  title="“Which group are you in?”"
+                  subtitle="Students join open groups up to the member cap (e.g. 6 of 6) without flooding the class group chat."
+                  accentColor="#4F46E5"
+                  accentBg="#EEF2FF"
+                />
+              </HoverLiftCard>
+            </ScrollReveal>
           </View>
         </View>
-      </View>
 
-      {/* ===================================================================== */}
-      {/* 6. CHAPTER 4: 75% ATTENDANCE TARGET & GROUP ASSIGNMENT POLLS          */}
-      {/* ===================================================================== */}
-      <View
-        style={{
-          width: "100%",
-          maxWidth: 1200,
-          alignSelf: "center",
-          paddingHorizontal: isDesktop ? 32 : 20,
-          paddingVertical: isDesktop ? 88 : 56,
-        }}
-      >
-        <View style={{ maxWidth: 760 }}>
-          <View
-            style={{
-              alignSelf: "flex-start",
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 8,
-              paddingHorizontal: 12,
-              paddingVertical: 5,
-              borderRadius: 999,
-              backgroundColor: "#DCFCE7",
-              marginBottom: 14,
-            }}
-          >
-            <BarChart2 size={14} color="#166534" />
-            <Text
-              style={{
-                color: "#166534",
-                fontSize: 12,
-                lineHeight: 16,
-                fontFamily: "Inter_600SemiBold",
-              }}
-            >
-              75% attendance protection · Group work without chaos
-            </Text>
-          </View>
-
-          <Text
-            style={{
-              color: "#0F172A",
-              fontSize: isDesktop ? 40 : 30,
-              lineHeight: isDesktop ? 48 : 38,
-              fontFamily: "Inter_700Bold",
-              letterSpacing: -0.6,
-            }}
-          >
-            Protect your exam eligibility and sort out group projects in seconds.
-          </Text>
-
-          <Text
-            style={{
-              marginTop: 14,
-              color: "#334155",
-              fontSize: isDesktop ? 18 : 16,
-              lineHeight: isDesktop ? 28 : 24,
-              fontFamily: "Inter_400Regular",
-            }}
-          >
-            Most students only discover they are below 75% attendance when the exam eligibility list
-            is pasted on the department noticeboard. TT checks in after each lecture and tells you
-            exactly how many classes you need to make the cut.
-          </Text>
-        </View>
-
-        <View
-          style={{
-            marginTop: 40,
-            flexDirection: isDesktop ? "row" : "column",
-            alignItems: "stretch",
-            justifyContent: "space-between",
-            gap: 24,
-          }}
-        >
-          {/* Attendance Check-in */}
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: "#FFFFFF",
-              borderRadius: 24,
-              padding: 24,
-              borderWidth: 1,
-              borderColor: "#E2E8F0",
-              alignItems: "center",
-            }}
-          >
-            <PhoneScreenshotFrame
-              source={screenCheckIn}
-              width={chapterThreeUpWidth}
-              tag="Post-class prompt"
-              title="“Did you attend Operating Systems?”"
-              subtitle="10 minutes after lecture ends, tap Attended or Missed—or add an assignment announced in class."
-            />
-          </View>
-
-          {/* Semester Reports & 75% Math */}
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: "#FFFFFF",
-              borderRadius: 24,
-              padding: 24,
-              borderWidth: 1,
-              borderColor: "#E2E8F0",
-              alignItems: "center",
-            }}
-          >
-            <PhoneScreenshotFrame
-              source={screenReports}
-              width={chapterThreeUpWidth}
-              tag="Semester reports"
-              title="“Attend 5 of the remaining 6 classes to finish at 75%”"
-              subtitle="Course-by-course attendance bars flag danger early so you can recover before exams."
-              accentColor="#B91C1C"
-              accentBg="#FEE2E2"
-            />
-          </View>
-
-          {/* Group Assignment Poll */}
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: "#FFFFFF",
-              borderRadius: 24,
-              padding: 24,
-              borderWidth: 1,
-              borderColor: "#E2E8F0",
-              alignItems: "center",
-            }}
-          >
-            <PhoneScreenshotFrame
-              source={screenGroupPoll}
-              width={chapterThreeUpWidth}
-              tag="Group assignment polls"
-              title="“Which group are you in?”"
-              subtitle="Students join open groups up to the member cap (e.g. 6 of 6) without flooding the class group chat."
-              accentColor="#4F46E5"
-              accentBg="#EEF2FF"
-            />
-          </View>
-        </View>
-      </View>
-
-      {/* ===================================================================== */}
-      {/* 7. INTERACTIVE CLASS PREVIEW & CALL TO ACTION BANNER                  */}
-      {/* ===================================================================== */}
-      <View
-        style={{
-          width: "100%",
-          paddingHorizontal: isDesktop ? 32 : 20,
-          paddingBottom: isDesktop ? 80 : 56,
-        }}
-      >
+        {/* =================================================================== */}
+        {/* 7. INTERACTIVE CLASS PREVIEW & CALL TO ACTION BANNER                */}
+        {/* =================================================================== */}
         <View
           style={{
             width: "100%",
-            maxWidth: 1136,
-            alignSelf: "center",
-            borderRadius: 28,
-            backgroundColor: "#4F46E5",
-            paddingHorizontal: isDesktop ? 56 : 24,
-            paddingVertical: isDesktop ? 56 : 36,
-            flexDirection: isDesktop ? "row" : "column",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 32,
+            paddingHorizontal: isDesktop ? 32 : 20,
+            paddingBottom: isDesktop ? 80 : 56,
           }}
         >
-          <View style={{ flex: 1, maxWidth: 580 }}>
-            <Text
-              style={{
-                color: "#E0E7FF",
-                fontSize: 13,
-                lineHeight: 18,
-                fontFamily: "Inter_600SemiBold",
-                marginBottom: 8,
-              }}
-            >
-              Try it right now · No account needed to look
-            </Text>
-            <Text
-              style={{
-                color: "#FFFFFF",
-                fontSize: isDesktop ? 34 : 26,
-                lineHeight: isDesktop ? 42 : 34,
-                fontFamily: "Inter_700Bold",
-              }}
-            >
-              Have a 6-character class code from your course rep?
-            </Text>
-            <Text
-              style={{
-                marginTop: 10,
-                color: "#E0E7FF",
-                fontSize: 16,
-                lineHeight: 24,
-                fontFamily: "Inter_400Regular",
-              }}
-            >
-              Enter a share code below to preview the live class timetable in your browser, or
-              create your free student account in under a minute.
-            </Text>
-
-            {/* Sample Class Code Chips */}
+          <ScrollReveal
+            scrollY={scrollY}
+            viewportHeight={viewportHeight}
+            direction="scale"
+            distance={32}
+          >
             <View
               style={{
-                marginTop: 18,
-                flexDirection: "row",
-                flexWrap: "wrap",
+                width: "100%",
+                maxWidth: 1136,
+                alignSelf: "center",
+                borderRadius: 28,
+                backgroundColor: "#4F46E5",
+                paddingHorizontal: isDesktop ? 56 : 24,
+                paddingVertical: isDesktop ? 56 : 36,
+                flexDirection: isDesktop ? "row" : "column",
                 alignItems: "center",
-                gap: 8,
+                justifyContent: "space-between",
+                gap: 32,
               }}
             >
-              <Text
-                style={{
-                  color: "#C7D2FE",
-                  fontSize: 13,
-                  lineHeight: 18,
-                  fontFamily: "Inter_500Medium",
-                }}
-              >
-                Sample classes:
-              </Text>
-              {["CSC3X9", "CSC200", "ECO300"].map((sampleCode) => (
-                <Pressable
-                  key={sampleCode}
-                  onPress={() => {
-                    setShareCodeInput(sampleCode);
-                    handlePreviewCode(sampleCode);
-                  }}
+              <View style={{ flex: 1, maxWidth: 580 }}>
+                <Text
                   style={{
-                    paddingHorizontal: 12,
-                    paddingVertical: 5,
-                    borderRadius: 999,
-                    backgroundColor: "rgba(255, 255, 255, 0.16)",
-                    borderWidth: 1,
-                    borderColor: "rgba(255, 255, 255, 0.28)",
+                    color: "#E0E7FF",
+                    fontSize: 13,
+                    lineHeight: 18,
+                    fontFamily: "Inter_600SemiBold",
+                    marginBottom: 8,
+                  }}
+                >
+                  Try it right now · No account needed to look
+                </Text>
+                <Text
+                  style={{
+                    color: "#FFFFFF",
+                    fontSize: isDesktop ? 34 : 26,
+                    lineHeight: isDesktop ? 42 : 34,
+                    fontFamily: "Inter_700Bold",
+                  }}
+                >
+                  Have a 6-character class code from your course rep?
+                </Text>
+                <Text
+                  style={{
+                    marginTop: 10,
+                    color: "#E0E7FF",
+                    fontSize: 16,
+                    lineHeight: 24,
+                    fontFamily: "Inter_400Regular",
+                  }}
+                >
+                  Enter a share code below to preview the live class timetable in your browser, or
+                  create your free student account in under a minute.
+                </Text>
+
+                {/* Sample Class Code Chips */}
+                <View
+                  style={{
+                    marginTop: 18,
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                    gap: 8,
                   }}
                 >
                   <Text
                     style={{
-                      color: "#FFFFFF",
+                      color: "#C7D2FE",
                       fontSize: 13,
                       lineHeight: 18,
-                      fontFamily: "Inter_700Bold",
-                      letterSpacing: 1,
+                      fontFamily: "Inter_500Medium",
                     }}
                   >
-                    {sampleCode}
+                    Sample classes:
                   </Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
+                  {["CSC3X9", "CSC200", "ECO300"].map((sampleCode) => (
+                    <Pressable
+                      key={sampleCode}
+                      onPress={() => {
+                        setShareCodeInput(sampleCode);
+                        handlePreviewCode(sampleCode);
+                      }}
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 5,
+                        borderRadius: 999,
+                        backgroundColor: "rgba(255, 255, 255, 0.16)",
+                        borderWidth: 1,
+                        borderColor: "rgba(255, 255, 255, 0.28)",
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: "#FFFFFF",
+                          fontSize: 13,
+                          lineHeight: 18,
+                          fontFamily: "Inter_700Bold",
+                          letterSpacing: 1,
+                        }}
+                      >
+                        {sampleCode}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
 
-          {/* Code Input Card */}
-          <View
-            style={{
-              width: isDesktop ? 380 : "100%",
-              backgroundColor: "#FFFFFF",
-              borderRadius: 20,
-              padding: 20,
-              shadowColor: "#0F172A",
-              shadowOffset: { width: 0, height: 16 },
-              shadowOpacity: 0.2,
-              shadowRadius: 28,
-            }}
-          >
-            <Text
-              style={{
-                color: "#0F172A",
-                fontSize: 14,
-                lineHeight: 20,
-                fontFamily: "Inter_600SemiBold",
-                marginBottom: 8,
-              }}
-            >
-              Enter class share code
-            </Text>
-            <View style={{ flexDirection: "row", gap: 10 }}>
-              <TextInput
-                value={shareCodeInput}
-                onChangeText={(text) => setShareCodeInput(text.toUpperCase())}
-                placeholder="CSC3X9"
-                placeholderTextColor="#94A3B8"
-                maxLength={8}
-                autoCapitalize="characters"
+              {/* Code Input Card */}
+              <View
                 style={{
-                  flex: 1,
-                  height: 48,
-                  borderRadius: 12,
-                  borderWidth: 1.5,
-                  borderColor: "#CBD5E1",
-                  backgroundColor: "#F8FAFC",
-                  paddingHorizontal: 14,
-                  color: "#0F172A",
-                  fontSize: 18,
-                  fontFamily: "Inter_700Bold",
-                  letterSpacing: 2,
-                }}
-              />
-              <Pressable
-                onPress={() => handlePreviewCode()}
-                style={{
-                  height: 48,
-                  paddingHorizontal: 18,
-                  borderRadius: 12,
-                  backgroundColor: "#0F172A",
-                  alignItems: "center",
-                  justifyContent: "center",
+                  width: isDesktop ? 380 : "100%",
+                  backgroundColor: "#FFFFFF",
+                  borderRadius: 20,
+                  padding: 20,
+                  shadowColor: "#0F172A",
+                  shadowOffset: { width: 0, height: 16 },
+                  shadowOpacity: 0.2,
+                  shadowRadius: 28,
                 }}
               >
                 <Text
                   style={{
-                    color: "#FFFFFF",
+                    color: "#0F172A",
+                    fontSize: 14,
+                    lineHeight: 20,
+                    fontFamily: "Inter_600SemiBold",
+                    marginBottom: 8,
+                  }}
+                >
+                  Enter class share code
+                </Text>
+                <View style={{ flexDirection: "row", gap: 10 }}>
+                  <TextInput
+                    value={shareCodeInput}
+                    onChangeText={(text) => setShareCodeInput(text.toUpperCase())}
+                    placeholder="CSC3X9"
+                    placeholderTextColor="#94A3B8"
+                    maxLength={8}
+                    autoCapitalize="characters"
+                    style={{
+                      flex: 1,
+                      height: 48,
+                      borderRadius: 12,
+                      borderWidth: 1.5,
+                      borderColor: "#CBD5E1",
+                      backgroundColor: "#F8FAFC",
+                      paddingHorizontal: 14,
+                      color: "#0F172A",
+                      fontSize: 18,
+                      fontFamily: "Inter_700Bold",
+                      letterSpacing: 2,
+                    }}
+                  />
+                  <Pressable
+                    onPress={() => handlePreviewCode()}
+                    style={{
+                      height: 48,
+                      paddingHorizontal: 18,
+                      borderRadius: 12,
+                      backgroundColor: "#0F172A",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: "#FFFFFF",
+                        fontSize: 14,
+                        lineHeight: 20,
+                        fontFamily: "Inter_600SemiBold",
+                      }}
+                    >
+                      Preview
+                    </Text>
+                  </Pressable>
+                </View>
+
+                <View
+                  style={{
+                    height: 1,
+                    backgroundColor: "#E2E8F0",
+                    marginVertical: 16,
+                  }}
+                />
+
+                <Pressable
+                  onPress={() => router.push("/setup/welcome?mode=signup" as any)}
+                  style={{
+                    width: "100%",
+                    paddingVertical: 12,
+                    borderRadius: 12,
+                    backgroundColor: "#EEF2FF",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: "#4F46E5",
+                      fontSize: 14,
+                      lineHeight: 20,
+                      fontFamily: "Inter_600SemiBold",
+                    }}
+                  >
+                    Or create a new shared class for your level →
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          </ScrollReveal>
+        </View>
+
+        {/* =================================================================== */}
+        {/* 8. COMPLIANT PRODUCT FOOTER (GOOGLE OAUTH & APP STORE VERIFIED)     */}
+        {/* =================================================================== */}
+        <View
+          style={{
+            width: "100%",
+            backgroundColor: "#FFFFFF",
+            borderTopWidth: 1,
+            borderTopColor: "#E2E8F0",
+          }}
+        >
+          <View
+            style={{
+              width: "100%",
+              maxWidth: 1200,
+              alignSelf: "center",
+              paddingHorizontal: isDesktop ? 32 : 20,
+              paddingVertical: 40,
+              flexDirection: isTablet ? "row" : "column",
+              alignItems: isTablet ? "center" : "flex-start",
+              justifyContent: "space-between",
+              gap: 24,
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+              <View
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 9,
+                  backgroundColor: "#0F172A",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  overflow: "hidden",
+                }}
+              >
+                <Image
+                  source={brandLogo}
+                  style={{ width: 34, height: 34 }}
+                  resizeMode="contain"
+                  accessibilityLabel="TT: Student Timetable logo"
+                />
+              </View>
+              <View>
+                <Text
+                  style={{
+                    color: "#0F172A",
+                    fontSize: 15,
+                    lineHeight: 20,
+                    fontFamily: "Inter_700Bold",
+                  }}
+                >
+                  TT: Student Timetable
+                </Text>
+                <Text
+                  style={{
+                    color: "#64748B",
+                    fontSize: 12,
+                    lineHeight: 16,
+                    fontFamily: "Inter_400Regular",
+                  }}
+                >
+                  © {new Date().getFullYear()} EasyPass Software Solutions · NDPA 2023 compliant
+                </Text>
+              </View>
+            </View>
+
+            <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 20 }}>
+              <Pressable onPress={() => Linking.openURL(APP_STORE_SEARCH_URL)}>
+                <Text
+                  style={{
+                    color: "#334155",
+                    fontSize: 14,
+                    lineHeight: 20,
+                    fontFamily: "Inter_500Medium",
+                  }}
+                >
+                  iOS App Store
+                </Text>
+              </Pressable>
+
+              <Pressable onPress={() => handlePreviewCode("CSC3X9")}>
+                <Text
+                  style={{
+                    color: "#334155",
+                    fontSize: 14,
+                    lineHeight: 20,
+                    fontFamily: "Inter_500Medium",
+                  }}
+                >
+                  Preview Class (CSC3X9)
+                </Text>
+              </Pressable>
+
+              <Pressable onPress={() => router.push("/setup/welcome?mode=signin" as any)}>
+                <Text
+                  style={{
+                    color: "#334155",
+                    fontSize: 14,
+                    lineHeight: 20,
+                    fontFamily: "Inter_500Medium",
+                  }}
+                >
+                  Sign in
+                </Text>
+              </Pressable>
+
+              <Pressable onPress={() => router.push("/setup/welcome?mode=signup" as any)}>
+                <Text
+                  style={{
+                    color: "#334155",
+                    fontSize: 14,
+                    lineHeight: 20,
+                    fontFamily: "Inter_500Medium",
+                  }}
+                >
+                  Create account
+                </Text>
+              </Pressable>
+
+              <Pressable onPress={() => router.push("/privacy" as any)}>
+                <Text
+                  style={{
+                    color: "#4F46E5",
                     fontSize: 14,
                     lineHeight: 20,
                     fontFamily: "Inter_600SemiBold",
                   }}
                 >
-                  Preview
+                  Privacy Policy
                 </Text>
               </Pressable>
             </View>
-
-            <View
-              style={{
-                height: 1,
-                backgroundColor: "#E2E8F0",
-                marginVertical: 16,
-              }}
-            />
-
-            <Pressable
-              onPress={() => router.push("/setup/welcome?mode=signup" as any)}
-              style={{
-                width: "100%",
-                paddingVertical: 12,
-                borderRadius: 12,
-                backgroundColor: "#EEF2FF",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Text
-                style={{
-                  color: "#4F46E5",
-                  fontSize: 14,
-                  lineHeight: 20,
-                  fontFamily: "Inter_600SemiBold",
-                }}
-              >
-                Or create a new shared class for your level →
-              </Text>
-            </Pressable>
           </View>
         </View>
-      </View>
-
-      {/* ===================================================================== */}
-      {/* 8. COMPLIANT PRODUCT FOOTER (GOOGLE OAUTH & APP STORE VERIFIED)       */}
-      {/* ===================================================================== */}
-      <View
-        style={{
-          width: "100%",
-          backgroundColor: "#FFFFFF",
-          borderTopWidth: 1,
-          borderTopColor: "#E2E8F0",
-        }}
-      >
-        <View
-          style={{
-            width: "100%",
-            maxWidth: 1200,
-            alignSelf: "center",
-            paddingHorizontal: isDesktop ? 32 : 20,
-            paddingVertical: 40,
-            flexDirection: isTablet ? "row" : "column",
-            alignItems: isTablet ? "center" : "flex-start",
-            justifyContent: "space-between",
-            gap: 24,
-          }}
-        >
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            <View
-              style={{
-                width: 34,
-                height: 34,
-                borderRadius: 9,
-                backgroundColor: "#0F172A",
-                alignItems: "center",
-                justifyContent: "center",
-                overflow: "hidden",
-              }}
-            >
-              <Image
-                source={brandLogo}
-                style={{ width: 34, height: 34 }}
-                resizeMode="contain"
-                accessibilityLabel="TT: Student Timetable logo"
-              />
-            </View>
-            <View>
-              <Text
-                style={{
-                  color: "#0F172A",
-                  fontSize: 15,
-                  lineHeight: 20,
-                  fontFamily: "Inter_700Bold",
-                }}
-              >
-                TT: Student Timetable
-              </Text>
-              <Text
-                style={{
-                  color: "#64748B",
-                  fontSize: 12,
-                  lineHeight: 16,
-                  fontFamily: "Inter_400Regular",
-                }}
-              >
-                © {new Date().getFullYear()} EasyPass Software Solutions · NDPA 2023 compliant
-              </Text>
-            </View>
-          </View>
-
-          <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 20 }}>
-            <Pressable onPress={() => Linking.openURL(APP_STORE_SEARCH_URL)}>
-              <Text
-                style={{
-                  color: "#334155",
-                  fontSize: 14,
-                  lineHeight: 20,
-                  fontFamily: "Inter_500Medium",
-                }}
-              >
-                iOS App Store
-              </Text>
-            </Pressable>
-
-            <Pressable onPress={() => handlePreviewCode("CSC3X9")}>
-              <Text
-                style={{
-                  color: "#334155",
-                  fontSize: 14,
-                  lineHeight: 20,
-                  fontFamily: "Inter_500Medium",
-                }}
-              >
-                Preview Class (CSC3X9)
-              </Text>
-            </Pressable>
-
-            <Pressable onPress={() => router.push("/setup/welcome?mode=signin" as any)}>
-              <Text
-                style={{
-                  color: "#334155",
-                  fontSize: 14,
-                  lineHeight: 20,
-                  fontFamily: "Inter_500Medium",
-                }}
-              >
-                Sign in
-              </Text>
-            </Pressable>
-
-            <Pressable onPress={() => router.push("/setup/welcome?mode=signup" as any)}>
-              <Text
-                style={{
-                  color: "#334155",
-                  fontSize: 14,
-                  lineHeight: 20,
-                  fontFamily: "Inter_500Medium",
-                }}
-              >
-                Create account
-              </Text>
-            </Pressable>
-
-            <Pressable onPress={() => router.push("/privacy" as any)}>
-              <Text
-                style={{
-                  color: "#4F46E5",
-                  fontSize: 14,
-                  lineHeight: 20,
-                  fontFamily: "Inter_600SemiBold",
-                }}
-              >
-                Privacy Policy
-              </Text>
-            </Pressable>
-          </View>
-        </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
