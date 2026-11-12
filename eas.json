@@ -6,16 +6,40 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_live_Y2xlcmsuc3R1ZGVudHRpbWV0YWJsZS5hcHAk",
+        "EXPO_PUBLIC_CLERK_FRONTEND_API": "https://clerk.studenttimetable.app",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://ejkzzubuqyvtbhxocbff.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_KEY": "sb_publishable_iffdrJiud5Rt2in-CvdZmg_vg9bD18W",
+        "EXPO_PUBLIC_POSTHOG_API_KEY": "phc_oYdVdocXopDZwXBna5q5vqWFCyhCkFWCnnPYsvYZp9QG",
+        "EXPO_PUBLIC_POSTHOG_HOST": "https://eu.i.posthog.com"
+      }
     },
     "preview": {
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_live_Y2xlcmsuc3R1ZGVudHRpbWV0YWJsZS5hcHAk",
+        "EXPO_PUBLIC_CLERK_FRONTEND_API": "https://clerk.studenttimetable.app",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://ejkzzubuqyvtbhxocbff.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_KEY": "sb_publishable_iffdrJiud5Rt2in-CvdZmg_vg9bD18W",
+        "EXPO_PUBLIC_POSTHOG_API_KEY": "phc_oYdVdocXopDZwXBna5q5vqWFCyhCkFWCnnPYsvYZp9QG",
+        "EXPO_PUBLIC_POSTHOG_HOST": "https://eu.i.posthog.com"
       }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_live_Y2xlcmsuc3R1ZGVudHRpbWV0YWJsZS5hcHAk",
+        "EXPO_PUBLIC_CLERK_FRONTEND_API": "https://clerk.studenttimetable.app",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://ejkzzubuqyvtbhxocbff.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_KEY": "sb_publishable_iffdrJiud5Rt2in-CvdZmg_vg9bD18W",
+        "EXPO_PUBLIC_POSTHOG_API_KEY": "phc_oYdVdocXopDZwXBna5q5vqWFCyhCkFWCnnPYsvYZp9QG",
+        "EXPO_PUBLIC_POSTHOG_HOST": "https://eu.i.posthog.com"
+      }
     }
   },
   "submit": {

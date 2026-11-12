@@ -79,6 +79,7 @@ export interface AuthActionResult {
   verificationMode?: "signin" | "signup";
   cancelled?: boolean;
   fallbackToChooser?: boolean;
+  isNewUser?: boolean;
 }
 
 export interface AuthContextValue {
@@ -100,8 +101,9 @@ export interface AuthContextValue {
   signInWithOAuth: (
     provider: "oauth_google" | "oauth_apple",
     account?: {
-      email: string;
-      displayName: string;
+      intent?: "signin" | "signup";
+      email?: string;
+      displayName?: string;
       avatarUrl?: string | null;
       completeOnboarding?: boolean;
     },
@@ -165,8 +167,14 @@ export function suggestUsernames(displayName: string, email?: string): string[] 
   return Array.from(new Set(candidates)).slice(0, 3);
 }
 
+const DEFAULT_CLERK_PUBLISHABLE_KEY = "pk_live_Y2xlcmsuc3R1ZGVudHRpbWV0YWJsZS5hcHAk";
+
+export function getClerkPublishableKey(): string {
+  return process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY || DEFAULT_CLERK_PUBLISHABLE_KEY;
+}
+
 export function isClerkKeyConfigured(): boolean {
-  const key = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
+  const key = getClerkPublishableKey();
   return Boolean(
     key &&
     key !== "pk_test_your-clerk-publishable-key" &&
@@ -462,10 +470,11 @@ function InnerAuthCore({
       return;
     }
     const cu = clerkSdk.clerkUser;
-    if (lastSyncedClerkUserIdRef.current === cu.id && isSignedIn) {
+    const syncSignature = `${cu.id}:${cu.primaryEmailAddress ?? ""}:${cu.fullName ?? ""}`;
+    if (lastSyncedClerkUserIdRef.current === syncSignature && isSignedIn) {
       return;
     }
-    lastSyncedClerkUserIdRef.current = cu.id;
+    lastSyncedClerkUserIdRef.current = syncSignature;
 
     const clerkEmail = cu.primaryEmailAddress || user.email;
     const { studentId: scopedStudentId } = deriveAccountIds(cu.id, clerkEmail);
@@ -804,37 +813,160 @@ function InnerAuthCore({
     async (
       provider: "oauth_google" | "oauth_apple",
       account?: {
-        email: string;
-        displayName: string;
+        intent?: "signin" | "signup";
+        email?: string;
+        displayName?: string;
         avatarUrl?: string | null;
         completeOnboarding?: boolean;
       },
     ): Promise<AuthActionResult> => {
+      const hasManualAccount = Boolean(account?.email);
+
       // 1. If no manual account override was passed and Clerk SSO is available, launch real Clerk OAuth browser flow!
-      if (!account && clerkSdk?.startSSOFlow && Platform.OS !== "web") {
+      if (!hasManualAccount && clerkSdk?.startSSOFlow && Platform.OS !== "web") {
         try {
-          const redirectUrl = Linking.createURL("/setup/welcome", { scheme: "tt" });
+          const redirectUrl = Linking.createURL("oauth-native-callback", { scheme: "tt" });
           const { createdSessionId, setActive, signIn, signUp, authSessionResult } =
             await clerkSdk.startSSOFlow({
               strategy: provider,
               redirectUrl,
             });
 
-          if (createdSessionId && setActive) {
-            await setActive({ session: createdSessionId });
+          if (authSessionResult?.type === "cancel" || authSessionResult?.type === "dismiss") {
+            return { ok: false, cancelled: true };
+          }
+
+          let finalSessionId: string | null = createdSessionId ?? null;
+          let isNewSignUp = account?.intent === "signup";
+
+          // Step A: Handle transferable sign-in -> sign-up (new user tapped Google/Apple on Sign In)
+          if (
+            !finalSessionId &&
+            signUp &&
+            signIn?.firstFactorVerification?.status === "transferable"
+          ) {
+            try {
+              const createdUp = await signUp.create({ transfer: true });
+              isNewSignUp = true;
+              if (createdUp.status === "complete" && createdUp.createdSessionId) {
+                finalSessionId = createdUp.createdSessionId;
+              }
+            } catch {
+              // Continue to missing_requirements check below
+            }
+          }
+
+          // Step B: Handle transferable sign-up -> sign-in (existing user tapped Google/Apple on Create Account)
+          if (
+            !finalSessionId &&
+            signIn &&
+            signUp?.verifications?.externalAccount?.status === "transferable"
+          ) {
+            try {
+              const createdIn = await signIn.create({ transfer: true });
+              if (account?.intent !== "signup") {
+                isNewSignUp = false;
+              }
+              if (createdIn.status === "complete" && createdIn.createdSessionId) {
+                finalSessionId = createdIn.createdSessionId;
+              }
+            } catch {
+              // Continue to fallback check below
+            }
+          }
+
+          // Step C: Fulfill missing sign-up requirements (e.g. Clerk requires username, first_name, or last_name)
+          if (
+            !finalSessionId &&
+            signUp &&
+            (signUp.status === "missing_requirements" || (signUp.missingFields?.length ?? 0) > 0)
+          ) {
+            isNewSignUp = true;
+            const missing = signUp.missingFields ?? [];
+            const candidateEmail =
+              signUp.emailAddress || signIn?.identifier || user.email || "student@tt.app";
+            const candidateFirst = signUp.firstName || "Student";
+            const candidateLast = signUp.lastName || "User";
+            const candidateFullName =
+              [signUp.firstName, signUp.lastName].filter(Boolean).join(" ").trim() || "Student";
+            const baseHandle =
+              signUp.username ||
+              (suggestUsernames(candidateFullName, candidateEmail)[0] ?? "student_tt");
+            const suffix = String(Math.floor(100 + Math.random() * 900));
+
+            const updatePayload: Record<string, unknown> = {};
+            if (missing.includes("username") || !signUp.username) {
+              updatePayload.username = normalizeUsername(`${baseHandle}_${suffix}`);
+            }
+            if (missing.includes("first_name") && !signUp.firstName) {
+              updatePayload.firstName = candidateFirst;
+            }
+            if (missing.includes("last_name") && !signUp.lastName) {
+              updatePayload.lastName = candidateLast;
+            }
+            if (missing.includes("legal_accepted")) {
+              updatePayload.legalAccepted = true;
+            }
+
+            try {
+              const updatedUp = await signUp.update(updatePayload as any);
+              if (updatedUp.status === "complete" && updatedUp.createdSessionId) {
+                finalSessionId = updatedUp.createdSessionId;
+              }
+            } catch {
+              try {
+                const retryUp = await signUp.update({
+                  ...updatePayload,
+                  username: `tt_student_${Math.floor(10000 + Math.random() * 90000)}`,
+                } as any);
+                if (retryUp.status === "complete" && retryUp.createdSessionId) {
+                  finalSessionId = retryUp.createdSessionId;
+                }
+              } catch {
+                // Handled below if finalSessionId remains null
+              }
+            }
+          }
+
+          if (!finalSessionId) {
+            finalSessionId = signUp?.createdSessionId ?? signIn?.createdSessionId ?? null;
+          }
+          if (signUp?.createdUserId && !signIn?.createdSessionId) {
+            isNewSignUp = true;
+          }
+
+          if (finalSessionId && setActive) {
+            await setActive({ session: finalSessionId });
             const liveJwt = await clerkSdk.getToken();
             const oauthEmail =
-              signUp?.emailAddress || signIn?.identifier || user.email || "student@uniben.edu";
+              signUp?.emailAddress ||
+              signIn?.identifier ||
+              clerkSdk.clerkUser?.primaryEmailAddress ||
+              user.email ||
+              "";
             const oauthName =
               [signUp?.firstName, signUp?.lastName].filter(Boolean).join(" ").trim() ||
+              clerkSdk.clerkUser?.fullName?.trim() ||
+              (oauthEmail
+                ? oauthEmail
+                    .split("@")[0]
+                    ?.split(/[._-]/)
+                    .filter(Boolean)
+                    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                    .join(" ")
+                : "") ||
               user.displayName ||
               "Student";
             const oauthUsername =
               signUp?.username ||
+              clerkSdk.clerkUser?.username ||
               user.username ||
               (suggestUsernames(oauthName, oauthEmail)[0] ?? "student_tt");
 
-            const clerkUserId = signUp?.createdUserId ?? `user_${provider}_${createdSessionId}`;
+            const clerkUserId =
+              signUp?.createdUserId ??
+              clerkSdk.clerkUser?.id ??
+              `user_${provider}_${finalSessionId}`;
             const { studentId: scopedStudentId } = deriveAccountIds(clerkUserId, oauthEmail);
 
             const nextUser: AuthUser = {
@@ -844,27 +976,40 @@ function InnerAuthCore({
               email: oauthEmail,
               displayName: oauthName,
               username: oauthUsername,
+              avatarUrl: clerkSdk.clerkUser?.imageUrl ?? user.avatarUrl,
               initials: computeInitials(oauthName),
             };
-            const isNewSignUp = Boolean(signUp?.createdUserId && !signIn?.createdSessionId);
-            const nextOnboarding = isNewSignUp ? false : hasCompletedOnboarding || true;
+            const nextOnboarding =
+              account?.completeOnboarding !== undefined
+                ? account.completeOnboarding
+                : account?.intent === "signup"
+                  ? false
+                  : isNewSignUp
+                    ? false
+                    : true;
             setUser(nextUser);
             setIsSignedIn(true);
             setHasCompletedOnboarding(nextOnboarding);
             await persistSession(nextUser, true, nextOnboarding, liveJwt ?? undefined);
-            return { ok: true };
+            return { ok: true, isNewUser: !nextOnboarding };
           }
 
-          if (authSessionResult?.type === "cancel" || authSessionResult?.type === "dismiss") {
-            return { ok: false, cancelled: true };
+          if (clerkConfigured) {
+            return {
+              ok: false,
+              error:
+                "Could not finish social sign-in. Please try again or continue with your email.",
+            };
           }
-
           return { ok: false, fallbackToChooser: true };
         } catch (err) {
           const msg = extractClerkErrorMessage(
             err,
-            "Clerk OAuth redirect requires configuring Google/Apple in your Clerk Dashboard.",
+            "Unable to complete social sign-in. Please try again or use your email.",
           );
+          if (clerkConfigured) {
+            return { ok: false, error: msg };
+          }
           return { ok: false, error: msg, fallbackToChooser: true };
         }
       }
@@ -1111,7 +1256,7 @@ function ClerkHookConnector({ children }: { children: React.ReactNode }) {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "";
+  const publishableKey = getClerkPublishableKey();
   if (isClerkKeyConfigured() && Platform.OS !== "web") {
     return (
       <ClerkProvider publishableKey={publishableKey} tokenCache={clerkTokenCache}>

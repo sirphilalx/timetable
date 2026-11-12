@@ -1,26 +1,24 @@
 import { createClient } from "@supabase/supabase-js";
 import { platformStorage } from "./storage";
 
-const supabaseUrl =
-  process.env.EXPO_PUBLIC_SUPABASE_URL || "https://placeholder-project.supabase.co";
+const DEFAULT_SUPABASE_URL = "https://ejkzzubuqyvtbhxocbff.supabase.co";
+const DEFAULT_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_iffdrJiud5Rt2in-CvdZmg_vg9bD18W";
+
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || DEFAULT_SUPABASE_URL;
 const supabaseAnonKey =
   process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
   process.env.EXPO_PUBLIC_SUPABASE_KEY ||
   process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
-  "placeholder-anon-key";
+  DEFAULT_SUPABASE_PUBLISHABLE_KEY;
 
 export function isSupabaseConfigured(): boolean {
-  const activeKey =
-    process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
-    process.env.EXPO_PUBLIC_SUPABASE_KEY ||
-    process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   return (
-    Boolean(process.env.EXPO_PUBLIC_SUPABASE_URL) &&
-    process.env.EXPO_PUBLIC_SUPABASE_URL !== "https://your-project-id.supabase.co" &&
-    process.env.EXPO_PUBLIC_SUPABASE_URL !== "https://placeholder-project.supabase.co" &&
-    Boolean(activeKey) &&
-    activeKey !== "your-anon-key-here" &&
-    activeKey !== "placeholder-anon-key"
+    Boolean(supabaseUrl) &&
+    supabaseUrl !== "https://your-project-id.supabase.co" &&
+    supabaseUrl !== "https://placeholder-project.supabase.co" &&
+    Boolean(supabaseAnonKey) &&
+    supabaseAnonKey !== "your-anon-key-here" &&
+    supabaseAnonKey !== "placeholder-anon-key"
   );
 }
 

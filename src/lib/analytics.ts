@@ -4,6 +4,7 @@ import { platformStorage } from "./storage";
 
 const ANALYTICS_OPT_OUT_KEY = "tt_analytics_opt_out_v1";
 const DEFAULT_POSTHOG_EU_HOST = "https://eu.i.posthog.com";
+const DEFAULT_POSTHOG_API_KEY = "phc_oYdVdocXopDZwXBna5q5vqWFCyhCkFWCnnPYsvYZp9QG";
 
 export type AnalyticsEventName =
   | "auth_signed_in"
@@ -68,7 +69,7 @@ const safePostHogStorage = {
 };
 
 export function getPostHogApiKey(): string {
-  return (process.env.EXPO_PUBLIC_POSTHOG_API_KEY ?? "").trim();
+  return (process.env.EXPO_PUBLIC_POSTHOG_API_KEY || DEFAULT_POSTHOG_API_KEY).trim();
 }
 
 export function getPostHogHost(): string {

@@ -738,7 +738,15 @@ export default function SettingsAccountScreen() {
             </Pressable>
 
             <Pressable
-              onPress={() => setGoogleChooserOpen(true)}
+              onPress={async () => {
+                const res = await signInWithOAuth("oauth_google", {
+                  intent: "signin",
+                  completeOnboarding: true,
+                });
+                if (res.fallbackToChooser) {
+                  setGoogleChooserOpen(true);
+                }
+              }}
               accessibilityRole="button"
               style={{
                 flexDirection: "row",

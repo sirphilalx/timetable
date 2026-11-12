@@ -446,9 +446,11 @@ export default function WelcomeScreen() {
                 setAuthError(null);
                 setIsSubmitting(true);
                 try {
-                  const res = await signInWithOAuth("oauth_google");
+                  const res = await signInWithOAuth("oauth_google", {
+                    intent: isSignIn ? "signin" : "signup",
+                  });
                   if (res.ok) {
-                    if (isSignIn) {
+                    if (isSignIn && !res.isNewUser) {
                       await runRestoreAndEnterApp();
                     } else {
                       router.push(
@@ -460,7 +462,13 @@ export default function WelcomeScreen() {
                   if (res.cancelled) {
                     return;
                   }
-                  setOauthChooserProvider("oauth_google");
+                  if (res.fallbackToChooser) {
+                    setOauthChooserProvider("oauth_google");
+                    return;
+                  }
+                  setAuthError(
+                    res.error ?? "Unable to continue with Google. Please try again or use email.",
+                  );
                 } finally {
                   setIsSubmitting(false);
                 }
@@ -511,9 +519,11 @@ export default function WelcomeScreen() {
                 setAuthError(null);
                 setIsSubmitting(true);
                 try {
-                  const res = await signInWithOAuth("oauth_apple");
+                  const res = await signInWithOAuth("oauth_apple", {
+                    intent: isSignIn ? "signin" : "signup",
+                  });
                   if (res.ok) {
-                    if (isSignIn) {
+                    if (isSignIn && !res.isNewUser) {
                       await runRestoreAndEnterApp();
                     } else {
                       router.push(
@@ -525,7 +535,13 @@ export default function WelcomeScreen() {
                   if (res.cancelled) {
                     return;
                   }
-                  setOauthChooserProvider("oauth_apple");
+                  if (res.fallbackToChooser) {
+                    setOauthChooserProvider("oauth_apple");
+                    return;
+                  }
+                  setAuthError(
+                    res.error ?? "Unable to continue with Apple. Please try again or use email.",
+                  );
                 } finally {
                   setIsSubmitting(false);
                 }
