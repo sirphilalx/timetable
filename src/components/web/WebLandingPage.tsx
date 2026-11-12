@@ -46,7 +46,7 @@ const screenExams = require("../../../Screens/91 Exams.png");
 const screenReading = require("../../../Screens/95 Reading.png");
 const screenWeeklySummary = require("../../../Screens/99 Weekly summary.png");
 
-const APP_STORE_URL = "https://apps.apple.com/app/tt-student-timetable/id6832754254";
+const APP_STORE_URL = "https://apps.apple.com/ng/app/tt-student-timetable/id6832754254";
 
 function AppStoreBadgeButton({
   variant = "dark",
