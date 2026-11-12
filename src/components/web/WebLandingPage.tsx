@@ -234,7 +234,7 @@ function ScrollReveal({
   viewportHeight,
   delayMs = 0,
   direction = "up",
-  distance = 36,
+  distance = 96,
   immediate = false,
   style,
 }: {
@@ -254,34 +254,56 @@ function ScrollReveal({
     if (immediate) {
       const timer = setTimeout(() => {
         setIsVisible(true);
-      }, 24);
+      }, 36);
       return () => clearTimeout(timer);
     }
   }, [immediate]);
 
   useEffect(() => {
-    if (isVisible) return;
-    const node = containerRef.current as any;
-    if (!node) return;
+    if (immediate) return;
+    const rafId = requestAnimationFrame(() => {
+      const node = containerRef.current as any;
+      if (!node) return;
 
-    if (typeof node.getBoundingClientRect === "function") {
-      const rect = node.getBoundingClientRect();
-      if (rect && rect.top <= viewportHeight - 44) {
-        setIsVisible(true);
-      }
-      return;
-    }
-
-    if (typeof node.measureInWindow === "function") {
-      node.measureInWindow((_x: number, y: number) => {
-        if (typeof y === "number" && y <= viewportHeight - 44) {
-          setIsVisible(true);
+      if (typeof node.getBoundingClientRect === "function") {
+        const rect = node.getBoundingClientRect();
+        if (!rect) return;
+        if (rect.top <= viewportHeight * 0.88 && rect.bottom >= 40) {
+          setIsVisible((prev) => (prev ? prev : true));
+        } else if (rect.top > viewportHeight * 0.96) {
+          setIsVisible((prev) => (prev ? false : prev));
         }
-      });
-    }
-  }, [isVisible, scrollY, viewportHeight]);
+        return;
+      }
 
-  const translateY = direction === "up" ? (isVisible ? 0 : distance) : 0;
+      if (typeof node.measureInWindow === "function") {
+        node.measureInWindow((_x: number, y: number) => {
+          if (typeof y === "number") {
+            if (y <= viewportHeight * 0.88) {
+              setIsVisible((prev) => (prev ? prev : true));
+            } else if (y > viewportHeight * 0.96) {
+              setIsVisible((prev) => (prev ? false : prev));
+            }
+          }
+        });
+      }
+    });
+    return () => cancelAnimationFrame(rafId);
+  }, [immediate, scrollY, viewportHeight]);
+
+  const translateY =
+    direction === "up"
+      ? isVisible
+        ? 0
+        : distance
+      : direction === "scale"
+        ? isVisible
+          ? 0
+          : Math.round(distance * 0.65)
+        : isVisible
+          ? 0
+          : 44;
+
   const translateX =
     direction === "left"
       ? isVisible
@@ -292,7 +314,19 @@ function ScrollReveal({
           ? 0
           : distance
         : 0;
-  const scale = direction === "scale" ? (isVisible ? 1 : 0.94) : isVisible ? 1 : 0.98;
+
+  const scale = direction === "scale" ? (isVisible ? 1 : 0.78) : isVisible ? 1 : 0.86;
+
+  const rotate =
+    direction === "left"
+      ? isVisible
+        ? "0deg"
+        : "-6.5deg"
+      : direction === "right"
+        ? isVisible
+          ? "0deg"
+          : "6.5deg"
+        : "0deg";
 
   return (
     <View
@@ -301,12 +335,13 @@ function ScrollReveal({
         style,
         {
           opacity: isVisible ? 1 : 0,
-          transform: [{ translateY }, { translateX }, { scale }],
-          transitionProperty: "opacity, transform",
-          transitionDuration: "720ms",
-          transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
-          transitionDelay: `${delayMs}ms`,
-          willChange: "opacity, transform",
+          transform: [{ perspective: 1100 }, { translateY }, { translateX }, { scale }, { rotate }],
+          filter: isVisible ? "blur(0px)" : "blur(10px)",
+          transitionProperty: "opacity, transform, filter",
+          transitionDuration: isVisible ? "920ms" : "380ms",
+          transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)",
+          transitionDelay: isVisible ? `${delayMs}ms` : "0ms",
+          willChange: "opacity, transform, filter",
         } as any,
       ]}
     >
@@ -331,10 +366,20 @@ function HoverLiftCard({ children, style }: { children: React.ReactNode; style?:
         style={[
           style,
           {
-            transform: [{ translateY: isHovered ? -8 : 0 }, { scale: isHovered ? 1.012 : 1 }],
+            transform: [
+              { perspective: 1000 },
+              { translateY: isHovered ? -16 : 0 },
+              { scale: isHovered ? 1.032 : 1 },
+              { rotate: isHovered ? "-0.8deg" : "0deg" },
+            ],
+            borderColor: isHovered ? "#6366F1" : style?.borderColor,
+            shadowColor: isHovered ? "#4F46E5" : "#0F172A",
+            shadowOffset: { width: 0, height: isHovered ? 28 : 8 },
+            shadowOpacity: isHovered ? 0.22 : 0.04,
+            shadowRadius: isHovered ? 44 : 16,
             transitionProperty: "transform, box-shadow, border-color",
-            transitionDuration: "320ms",
-            transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
+            transitionDuration: "420ms",
+            transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)",
           } as any,
         ]}
       >
@@ -509,23 +554,27 @@ export function WebLandingPage() {
   const scrollProgressPct = Math.min(100, Math.max(0, (scrollY / maxScroll) * 100));
   const isHeaderElevated = scrollY > 12;
 
-  // Hero 3-Phone Scroll Parallax & Fan-Out (0 -> 1 over first 680px of scroll)
-  const heroParallax = Math.min(1, Math.max(0, scrollY / 680));
-  const leftPhoneTranslateX = -heroParallax * 18;
-  const leftPhoneTranslateY = heroParallax * 16;
-  const leftPhoneRotate = `${(-heroParallax * 2.2).toFixed(2)}deg`;
+  // Dramatic Hero 3-Phone Deck-to-Fan Choreography (0 -> 1 over first 560px of scroll)
+  // At scrollY=0, side phones sit tucked inward & tilted (-8.5deg / +8.5deg);
+  // as you scroll, they sweep wide apart, rise, and un-tilt while the center phone zooms forward!
+  const heroParallax = Math.min(1, Math.max(0, scrollY / 560));
+  const leftPhoneTranslateX = 44 - heroParallax * 86;
+  const leftPhoneTranslateY = 36 - heroParallax * 28;
+  const leftPhoneRotate = `${(-8.5 + heroParallax * 6.5).toFixed(2)}deg`;
+  const leftPhoneScale = 0.9 + heroParallax * 0.1;
 
-  const centerPhoneTranslateY = -heroParallax * 14;
-  const centerPhoneScale = 1 + heroParallax * 0.025;
+  const centerPhoneTranslateY = -heroParallax * 34;
+  const centerPhoneScale = 1 + heroParallax * 0.085;
 
-  const rightPhoneTranslateX = heroParallax * 18;
-  const rightPhoneTranslateY = heroParallax * 16;
-  const rightPhoneRotate = `${(heroParallax * 2.2).toFixed(2)}deg`;
+  const rightPhoneTranslateX = -44 + heroParallax * 86;
+  const rightPhoneTranslateY = 36 - heroParallax * 28;
+  const rightPhoneRotate = `${(8.5 - heroParallax * 6.5).toFixed(2)}deg`;
+  const rightPhoneScale = 0.9 + heroParallax * 0.1;
 
-  // Tab switch transition values
-  const heroTabOpacity = heroTabEntering ? 1 : 0.35;
-  const heroTabTranslateY = heroTabEntering ? 0 : 16;
-  const heroTabScale = heroTabEntering ? 1 : 0.975;
+  // Dramatic Tab switch swoop values
+  const heroTabOpacity = heroTabEntering ? 1 : 0;
+  const heroTabTranslateY = heroTabEntering ? 0 : 56;
+  const heroTabScale = heroTabEntering ? 1 : 0.85;
 
   // Responsive phone widths so screenshots are large, crisp, and legible on every viewport
   const heroCenterWidth = isDesktop
@@ -1063,9 +1112,10 @@ export function WebLandingPage() {
                     alignItems: "center",
                     opacity: heroTabOpacity,
                     transform: [{ translateY: heroTabTranslateY }, { scale: heroTabScale }],
-                    transitionProperty: "opacity, transform",
-                    transitionDuration: "420ms",
-                    transitionTimingFunction: "cubic-bezier(0.22, 1, 0.36, 1)",
+                    filter: heroTabEntering ? "blur(0px)" : "blur(8px)",
+                    transitionProperty: "opacity, transform, filter",
+                    transitionDuration: "640ms",
+                    transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)",
                   } as any
                 }
               >
@@ -1077,16 +1127,23 @@ export function WebLandingPage() {
                     gap: isDesktop ? 28 : 32,
                   }}
                 >
-                  {/* Left Companion Screen with Scroll Fan-Out Parallax */}
+                  {/* Left Companion Screen with Dramatic Deck-to-Fan Scroll Parallax */}
                   {isDesktop ? (
                     <View
-                      style={{
-                        transform: [
-                          { translateX: leftPhoneTranslateX },
-                          { translateY: leftPhoneTranslateY },
-                          { rotate: leftPhoneRotate },
-                        ],
-                      }}
+                      style={
+                        {
+                          transform: [
+                            { perspective: 1200 },
+                            { translateX: leftPhoneTranslateX },
+                            { translateY: leftPhoneTranslateY },
+                            { scale: leftPhoneScale },
+                            { rotate: leftPhoneRotate },
+                          ],
+                          transitionProperty: "transform",
+                          transitionDuration: "120ms",
+                          transitionTimingFunction: " ease-out",
+                        } as any
+                      }
                     >
                       <PhoneScreenshotFrame
                         source={currentHero.left.source}
@@ -1099,14 +1156,21 @@ export function WebLandingPage() {
                     </View>
                   ) : null}
 
-                  {/* Center Primary Screen with Upward Scroll Parallax */}
+                  {/* Center Primary Screen with Forward Zoom Scroll Parallax */}
                   <View
-                    style={{
-                      transform: [
-                        { translateY: centerPhoneTranslateY },
-                        { scale: centerPhoneScale },
-                      ],
-                    }}
+                    style={
+                      {
+                        zIndex: 10,
+                        transform: [
+                          { perspective: 1200 },
+                          { translateY: centerPhoneTranslateY },
+                          { scale: centerPhoneScale },
+                        ],
+                        transitionProperty: "transform",
+                        transitionDuration: "120ms",
+                        transitionTimingFunction: "ease-out",
+                      } as any
+                    }
                   >
                     <PhoneScreenshotFrame
                       source={currentHero.center.source}
@@ -1119,16 +1183,23 @@ export function WebLandingPage() {
                     />
                   </View>
 
-                  {/* Right Companion Screen with Scroll Fan-Out Parallax */}
+                  {/* Right Companion Screen with Dramatic Deck-to-Fan Scroll Parallax */}
                   {isDesktop ? (
                     <View
-                      style={{
-                        transform: [
-                          { translateX: rightPhoneTranslateX },
-                          { translateY: rightPhoneTranslateY },
-                          { rotate: rightPhoneRotate },
-                        ],
-                      }}
+                      style={
+                        {
+                          transform: [
+                            { perspective: 1200 },
+                            { translateX: rightPhoneTranslateX },
+                            { translateY: rightPhoneTranslateY },
+                            { scale: rightPhoneScale },
+                            { rotate: rightPhoneRotate },
+                          ],
+                          transitionProperty: "transform",
+                          transitionDuration: "120ms",
+                          transitionTimingFunction: "ease-out",
+                        } as any
+                      }
                     >
                       <PhoneScreenshotFrame
                         source={currentHero.right.source}
@@ -1298,7 +1369,8 @@ export function WebLandingPage() {
               scrollY={scrollY}
               viewportHeight={viewportHeight}
               delayMs={0}
-              distance={40}
+              direction={isDesktop ? "left" : "up"}
+              distance={110}
               style={{ flex: 1 }}
             >
               <HoverLiftCard
@@ -1326,8 +1398,9 @@ export function WebLandingPage() {
             <ScrollReveal
               scrollY={scrollY}
               viewportHeight={viewportHeight}
-              delayMs={130}
-              distance={40}
+              delayMs={160}
+              direction="scale"
+              distance={115}
               style={{ flex: 1 }}
             >
               <HoverLiftCard
@@ -1357,8 +1430,9 @@ export function WebLandingPage() {
             <ScrollReveal
               scrollY={scrollY}
               viewportHeight={viewportHeight}
-              delayMs={260}
-              distance={40}
+              delayMs={320}
+              direction={isDesktop ? "right" : "up"}
+              distance={110}
               style={{ flex: 1 }}
             >
               <HoverLiftCard
@@ -1478,7 +1552,7 @@ export function WebLandingPage() {
                 viewportHeight={viewportHeight}
                 delayMs={0}
                 direction={isDesktop ? "left" : "up"}
-                distance={36}
+                distance={115}
                 style={{ flex: 1, minWidth: isDesktop ? 520 : "100%" }}
               >
                 <HoverLiftCard
@@ -1548,9 +1622,9 @@ export function WebLandingPage() {
               <ScrollReveal
                 scrollY={scrollY}
                 viewportHeight={viewportHeight}
-                delayMs={120}
+                delayMs={150}
                 direction={isDesktop ? "right" : "up"}
-                distance={36}
+                distance={115}
                 style={{ flex: 1, minWidth: isDesktop ? 520 : "100%" }}
               >
                 <HoverLiftCard
@@ -1622,7 +1696,7 @@ export function WebLandingPage() {
                 viewportHeight={viewportHeight}
                 delayMs={100}
                 direction={isDesktop ? "left" : "up"}
-                distance={36}
+                distance={115}
                 style={{ flex: 1, minWidth: isDesktop ? 520 : "100%" }}
               >
                 <HoverLiftCard
@@ -1692,9 +1766,9 @@ export function WebLandingPage() {
               <ScrollReveal
                 scrollY={scrollY}
                 viewportHeight={viewportHeight}
-                delayMs={220}
+                delayMs={240}
                 direction={isDesktop ? "right" : "up"}
-                distance={36}
+                distance={115}
                 style={{ flex: 1, minWidth: isDesktop ? 520 : "100%" }}
               >
                 <HoverLiftCard
@@ -1853,7 +1927,8 @@ export function WebLandingPage() {
                 scrollY={scrollY}
                 viewportHeight={viewportHeight}
                 delayMs={0}
-                distance={40}
+                direction={isDesktop ? "left" : "up"}
+                distance={110}
                 style={{ flex: 1 }}
               >
                 <HoverLiftCard
@@ -1882,8 +1957,9 @@ export function WebLandingPage() {
               <ScrollReveal
                 scrollY={scrollY}
                 viewportHeight={viewportHeight}
-                delayMs={130}
-                distance={40}
+                delayMs={160}
+                direction="scale"
+                distance={115}
                 style={{ flex: 1 }}
               >
                 <HoverLiftCard
@@ -1912,8 +1988,9 @@ export function WebLandingPage() {
               <ScrollReveal
                 scrollY={scrollY}
                 viewportHeight={viewportHeight}
-                delayMs={260}
-                distance={40}
+                delayMs={320}
+                direction={isDesktop ? "right" : "up"}
+                distance={110}
                 style={{ flex: 1 }}
               >
                 <HoverLiftCard
@@ -2023,7 +2100,8 @@ export function WebLandingPage() {
               scrollY={scrollY}
               viewportHeight={viewportHeight}
               delayMs={0}
-              distance={40}
+              direction={isDesktop ? "left" : "up"}
+              distance={110}
               style={{ flex: 1 }}
             >
               <HoverLiftCard
@@ -2051,8 +2129,9 @@ export function WebLandingPage() {
             <ScrollReveal
               scrollY={scrollY}
               viewportHeight={viewportHeight}
-              delayMs={130}
-              distance={40}
+              delayMs={160}
+              direction="scale"
+              distance={115}
               style={{ flex: 1 }}
             >
               <HoverLiftCard
@@ -2082,8 +2161,9 @@ export function WebLandingPage() {
             <ScrollReveal
               scrollY={scrollY}
               viewportHeight={viewportHeight}
-              delayMs={260}
-              distance={40}
+              delayMs={320}
+              direction={isDesktop ? "right" : "up"}
+              distance={110}
               style={{ flex: 1 }}
             >
               <HoverLiftCard
