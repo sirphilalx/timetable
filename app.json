@@ -7,6 +7,14 @@
     "icon": "./logo/Logo-light.png",
     "scheme": "tt",
     "userInterfaceStyle": "automatic",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/23de588a-bd17-4640-9600-d679225f2d6b",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "app.studenttimetable.tt",
