@@ -136,7 +136,11 @@ export default function CreateSharedClassScreen() {
             >
               Institution
             </Text>
-            <View
+            <TextInput
+              value={institution}
+              onChangeText={setInstitution}
+              placeholder="e.g. University of Benin (UNIBEN)"
+              placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
               style={{
                 height: 48,
                 borderRadius: 12,
@@ -144,23 +148,11 @@ export default function CreateSharedClassScreen() {
                 borderColor: isDark ? "#334155" : "#CBD5E1",
                 backgroundColor: isDark ? "#1E293B" : "#FFFFFF",
                 paddingHorizontal: 14,
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
+                fontFamily: "Inter_400Regular",
+                fontSize: 15,
+                color: isDark ? "#F8FAFC" : "#0F172A",
               }}
-            >
-              <TextInput
-                value={institution}
-                onChangeText={setInstitution}
-                style={{
-                  flex: 1,
-                  fontFamily: "Inter_400Regular",
-                  fontSize: 15,
-                  color: isDark ? "#F8FAFC" : "#0F172A",
-                }}
-              />
-              <ChevronDown size={18} color={isDark ? "#94A3B8" : "#475569"} />
-            </View>
+            />
           </View>
 
           {/* Level & Session Row */}

@@ -17,15 +17,6 @@ import { useTheme } from "@/theme";
 import { useTimetable, useUpdateSemester } from "@/hooks/useTimetable";
 import { memoryStore } from "@/db/seed";
 
-const INSTITUTION_PRESETS = [
-  "University of Benin (UNIBEN)",
-  "University of Lagos (UNILAG)",
-  "Obafemi Awolowo University (OAU)",
-  "University of Ibadan (UI)",
-  "Ahmadu Bello University (ABU)",
-  "University of Nigeria, Nsukka (UNN)",
-];
-
 const ACADEMIC_SESSION_PRESETS = ["2025/2026", "2026/2027", "2027/2028", "2028/2029"];
 
 const SEMESTER_OPTIONS = [
@@ -68,7 +59,6 @@ export default function SetupSemesterScreen() {
   const [institution, setInstitution] = useState(
     data.student.institution || "University of Benin (UNIBEN)",
   );
-  const [institutionMenuOpen, setInstitutionMenuOpen] = useState(false);
 
   const [academicSession, setAcademicSession] = useState(initialParsed.session);
   const [sessionMenuOpen, setSessionMenuOpen] = useState(false);
@@ -221,7 +211,11 @@ export default function SetupSemesterScreen() {
             >
               Institution
             </Text>
-            <View
+            <TextInput
+              value={institution}
+              onChangeText={setInstitution}
+              placeholder="e.g. University of Benin (UNIBEN)"
+              placeholderTextColor={isDark ? "#64748B" : "#94A3B8"}
               style={{
                 height: 48,
                 borderRadius: 12,
@@ -229,74 +223,11 @@ export default function SetupSemesterScreen() {
                 borderColor: isDark ? "#334155" : "#CBD5E1",
                 backgroundColor: isDark ? "#1E293B" : "#FFFFFF",
                 paddingHorizontal: 14,
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
+                fontFamily: "Inter_400Regular",
+                fontSize: 15,
+                color: isDark ? "#F8FAFC" : "#0F172A",
               }}
-            >
-              <TextInput
-                value={institution}
-                onChangeText={setInstitution}
-                style={{
-                  flex: 1,
-                  fontFamily: "Inter_400Regular",
-                  fontSize: 15,
-                  color: isDark ? "#F8FAFC" : "#0F172A",
-                }}
-              />
-              <Pressable
-                onPress={() => setInstitutionMenuOpen((prev) => !prev)}
-                accessibilityRole="button"
-                accessibilityLabel="Toggle institution presets"
-                hitSlop={10}
-              >
-                <ChevronDown size={18} color={isDark ? "#94A3B8" : "#475569"} />
-              </Pressable>
-            </View>
-            {institutionMenuOpen ? (
-              <View
-                style={{
-                  marginTop: 8,
-                  borderRadius: 12,
-                  borderWidth: 1,
-                  borderColor: isDark ? "#334155" : "#CBD5E1",
-                  backgroundColor: isDark ? "#1E293B" : "#FFFFFF",
-                  overflow: "hidden",
-                }}
-              >
-                {INSTITUTION_PRESETS.map((uni) => {
-                  const active = institution === uni;
-                  return (
-                    <Pressable
-                      key={uni}
-                      onPress={() => {
-                        setInstitution(uni);
-                        setInstitutionMenuOpen(false);
-                      }}
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        paddingHorizontal: 14,
-                        paddingVertical: 11,
-                        backgroundColor: active ? (isDark ? "#312E81" : "#EEF2FF") : "transparent",
-                      }}
-                    >
-                      <Text
-                        variant="body"
-                        style={{
-                          color: isDark ? "#F8FAFC" : "#0F172A",
-                          fontFamily: active ? "Inter_600SemiBold" : "Inter_400Regular",
-                        }}
-                      >
-                        {uni}
-                      </Text>
-                      {active ? <Check size={16} color={isDark ? "#818CF8" : "#4F46E5"} /> : null}
-                    </Pressable>
-                  );
-                })}
-              </View>
-            ) : null}
+            />
             <Text variant="caption" style={{ color: isDark ? "#94A3B8" : "#475569", marginTop: 6 }}>
               Optional
             </Text>
