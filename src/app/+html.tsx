@@ -22,6 +22,7 @@ export default function RootHtml({ children }: PropsWithChildren) {
         <meta name="description" content={SITE_DESCRIPTION} />
         <meta name="application-name" content="TT: Student Timetable" />
         <meta name="apple-mobile-web-app-title" content="TT: Student Timetable" />
+        <meta name="apple-itunes-app" content="app-id=6832754254" />
         <meta name="theme-color" content="#4F46E5" />
         <link rel="canonical" href={SITE_URL} />
 

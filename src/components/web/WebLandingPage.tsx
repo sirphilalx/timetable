@@ -46,7 +46,85 @@ const screenExams = require("../../../Screens/91 Exams.png");
 const screenReading = require("../../../Screens/95 Reading.png");
 const screenWeeklySummary = require("../../../Screens/99 Weekly summary.png");
 
-const APP_STORE_SEARCH_URL = "https://apps.apple.com/search?term=TT%20Student%20Timetable";
+const APP_STORE_URL = "https://apps.apple.com/app/tt-student-timetable/id6832754254";
+
+function AppStoreBadgeButton({
+  variant = "dark",
+  size = "lg",
+  fullWidth = false,
+}: {
+  variant?: "dark" | "indigo" | "light";
+  size?: "sm" | "lg";
+  fullWidth?: boolean;
+}) {
+  const isSm = size === "sm";
+  const bg = variant === "indigo" ? "#4F46E5" : variant === "light" ? "#FFFFFF" : "#0F172A";
+  const borderColor =
+    variant === "indigo" ? "#6366F1" : variant === "light" ? "#CBD5E1" : "#334155";
+  const subTextColor =
+    variant === "indigo" ? "#E0E7FF" : variant === "light" ? "#475569" : "#CBD5E1";
+  const mainTextColor = variant === "light" ? "#0F172A" : "#FFFFFF";
+
+  return (
+    <Pressable
+      onPress={() => Linking.openURL(APP_STORE_URL)}
+      accessibilityRole="link"
+      accessibilityLabel="Download TT: Student Timetable on the iOS App Store"
+      style={{
+        width: fullWidth ? "100%" : "auto",
+        paddingHorizontal: isSm ? 14 : 22,
+        paddingVertical: isSm ? 8 : 12,
+        borderRadius: isSm ? 10 : 14,
+        backgroundColor: bg,
+        borderWidth: 1.5,
+        borderColor,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: isSm ? 8 : 12,
+        shadowColor: variant === "indigo" ? "#4F46E5" : "#0F172A",
+        shadowOffset: { width: 0, height: isSm ? 4 : 10 },
+        shadowOpacity: variant === "light" ? 0.08 : 0.24,
+        shadowRadius: isSm ? 10 : 20,
+      }}
+    >
+      <Text
+        style={{
+          color: mainTextColor,
+          fontSize: isSm ? 18 : 26,
+          lineHeight: isSm ? 20 : 28,
+          fontFamily: "Inter_700Bold",
+        }}
+      >
+        
+      </Text>
+      <View style={{ alignItems: "flex-start" }}>
+        <Text
+          style={{
+            color: subTextColor,
+            fontSize: isSm ? 9 : 11,
+            lineHeight: isSm ? 11 : 13,
+            fontFamily: "Inter_500Medium",
+            letterSpacing: 0.2,
+          }}
+        >
+          Available on iOS · Download on the
+        </Text>
+        <Text
+          style={{
+            color: mainTextColor,
+            fontSize: isSm ? 14 : 18,
+            lineHeight: isSm ? 17 : 22,
+            fontFamily: "Inter_700Bold",
+            letterSpacing: -0.3,
+          }}
+        >
+          App Store
+        </Text>
+      </View>
+    </Pressable>
+  );
+}
 
 type HeroTabKey = "today" | "sharing" | "calendar" | "assignments" | "exams" | "attendance";
 
@@ -631,6 +709,66 @@ export function WebLandingPage() {
           />
         </View>
 
+        {/* Top "Available on iOS" Call-to-Action Banner Bar */}
+        <Pressable
+          onPress={() => Linking.openURL(APP_STORE_URL)}
+          style={{
+            width: "100%",
+            backgroundColor: "#0F172A",
+            paddingHorizontal: 16,
+            paddingVertical: 8,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            flexWrap: "wrap",
+            gap: 10,
+          }}
+        >
+          <View
+            style={{
+              paddingHorizontal: 8,
+              paddingVertical: 2,
+              borderRadius: 999,
+              backgroundColor: "#4F46E5",
+            }}
+          >
+            <Text
+              style={{
+                color: "#FFFFFF",
+                fontSize: 11,
+                lineHeight: 15,
+                fontFamily: "Inter_700Bold",
+              }}
+            >
+               Available on iOS
+            </Text>
+          </View>
+          <Text
+            style={{
+              color: "#F8FAFC",
+              fontSize: 13,
+              lineHeight: 18,
+              fontFamily: "Inter_500Medium",
+              textAlign: "center",
+            }}
+          >
+            TT: Student Timetable is live on the Apple App Store for iPhone & iPad.
+          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            <Text
+              style={{
+                color: "#A5B4FC",
+                fontSize: 13,
+                lineHeight: 18,
+                fontFamily: "Inter_700Bold",
+              }}
+            >
+              Download free on the App Store
+            </Text>
+            <ArrowRight size={14} color="#A5B4FC" />
+          </View>
+        </Pressable>
+
         <View
           style={{
             width: "100%",
@@ -695,8 +833,8 @@ export function WebLandingPage() {
           </Pressable>
 
           {/* Right Navigation Actions */}
-          <View style={{ flexDirection: "row", alignItems: "center", gap: isTablet ? 12 : 8 }}>
-            {isTablet ? (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: isTablet ? 10 : 8 }}>
+            {isDesktop ? (
               <Pressable
                 onPress={() => handlePreviewCode("CSC3X9")}
                 style={{
@@ -721,7 +859,7 @@ export function WebLandingPage() {
             <Pressable
               onPress={() => router.push("/privacy" as any)}
               style={{
-                paddingHorizontal: 12,
+                paddingHorizontal: 10,
                 paddingVertical: 8,
                 borderRadius: 8,
               }}
@@ -762,12 +900,15 @@ export function WebLandingPage() {
             </Pressable>
 
             <Pressable
-              onPress={() => router.push("/setup/welcome?mode=signup" as any)}
+              onPress={() => Linking.openURL(APP_STORE_URL)}
               style={{
-                paddingHorizontal: 16,
+                paddingHorizontal: 15,
                 paddingVertical: 9,
                 borderRadius: 10,
                 backgroundColor: "#4F46E5",
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
               }}
             >
               <Text
@@ -778,7 +919,7 @@ export function WebLandingPage() {
                   fontFamily: "Inter_600SemiBold",
                 }}
               >
-                Get TT free
+                 Get iOS App
               </Text>
             </Pressable>
           </View>
@@ -927,44 +1068,15 @@ export function WebLandingPage() {
                   width: isTablet ? "auto" : "100%",
                 }}
               >
-                <Pressable
-                  onPress={() => Linking.openURL(APP_STORE_SEARCH_URL)}
-                  style={{
-                    width: isTablet ? "auto" : "100%",
-                    paddingHorizontal: 24,
-                    paddingVertical: 14,
-                    borderRadius: 12,
-                    backgroundColor: "#4F46E5",
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 10,
-                    shadowColor: "#4F46E5",
-                    shadowOffset: { width: 0, height: 8 },
-                    shadowOpacity: 0.25,
-                    shadowRadius: 16,
-                  }}
-                >
-                  <Smartphone size={18} color="#FFFFFF" />
-                  <Text
-                    style={{
-                      color: "#FFFFFF",
-                      fontSize: 16,
-                      lineHeight: 20,
-                      fontFamily: "Inter_600SemiBold",
-                    }}
-                  >
-                    Download on the App Store
-                  </Text>
-                </Pressable>
+                <AppStoreBadgeButton variant="indigo" size="lg" fullWidth={!isTablet} />
 
                 <Pressable
                   onPress={() => router.push("/setup/welcome?mode=signup" as any)}
                   style={{
                     width: isTablet ? "auto" : "100%",
                     paddingHorizontal: 22,
-                    paddingVertical: 14,
-                    borderRadius: 12,
+                    paddingVertical: 15,
+                    borderRadius: 14,
                     backgroundColor: "#0F172A",
                     flexDirection: "row",
                     alignItems: "center",
@@ -990,8 +1102,8 @@ export function WebLandingPage() {
                   style={{
                     width: isTablet ? "auto" : "100%",
                     paddingHorizontal: 20,
-                    paddingVertical: 14,
-                    borderRadius: 12,
+                    paddingVertical: 15,
+                    borderRadius: 14,
                     backgroundColor: "#F8FAFC",
                     borderWidth: 1,
                     borderColor: "#CBD5E1",
@@ -2192,7 +2304,201 @@ export function WebLandingPage() {
         </View>
 
         {/* =================================================================== */}
-        {/* 7. INTERACTIVE CLASS PREVIEW & CALL TO ACTION BANNER                */}
+        {/* 7. AVAILABLE ON iOS — APP STORE DOWNLOAD CALL TO ACTION BANNER      */}
+        {/* =================================================================== */}
+        <View
+          style={{
+            width: "100%",
+            paddingHorizontal: isDesktop ? 32 : 20,
+            paddingBottom: isDesktop ? 56 : 40,
+          }}
+        >
+          <ScrollReveal
+            scrollY={scrollY}
+            viewportHeight={viewportHeight}
+            direction="scale"
+            distance={48}
+          >
+            <View
+              style={{
+                width: "100%",
+                maxWidth: 1136,
+                alignSelf: "center",
+                borderRadius: 28,
+                backgroundColor: "#0F172A",
+                borderWidth: 1.5,
+                borderColor: "rgba(99, 102, 241, 0.45)",
+                paddingHorizontal: isDesktop ? 56 : 24,
+                paddingVertical: isDesktop ? 56 : 36,
+                flexDirection: isDesktop ? "row" : "column",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 36,
+                shadowColor: "#4F46E5",
+                shadowOffset: { width: 0, height: 20 },
+                shadowOpacity: 0.18,
+                shadowRadius: 36,
+              }}
+            >
+              {/* Left Column: App Store Call to Action Copy & Buttons */}
+              <View style={{ flex: 1, maxWidth: 580 }}>
+                <View
+                  style={{
+                    alignSelf: "flex-start",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 8,
+                    paddingHorizontal: 14,
+                    paddingVertical: 6,
+                    borderRadius: 999,
+                    backgroundColor: "rgba(79, 70, 229, 0.28)",
+                    borderWidth: 1,
+                    borderColor: "rgba(129, 140, 248, 0.45)",
+                    marginBottom: 16,
+                  }}
+                >
+                  <Smartphone size={14} color="#A5B4FC" />
+                  <Text
+                    style={{
+                      color: "#E0E7FF",
+                      fontSize: 12,
+                      lineHeight: 16,
+                      fontFamily: "Inter_600SemiBold",
+                    }}
+                  >
+                    Available now on iOS · iPhone & iPad
+                  </Text>
+                </View>
+
+                <Text
+                  style={{
+                    color: "#FFFFFF",
+                    fontSize: isDesktop ? 38 : 28,
+                    lineHeight: isDesktop ? 46 : 36,
+                    fontFamily: "Inter_700Bold",
+                    letterSpacing: -0.6,
+                  }}
+                >
+                  Carry your class timetable in your pocket. Download TT on the App Store.
+                </Text>
+
+                <Text
+                  style={{
+                    marginTop: 14,
+                    color: "#CBD5E1",
+                    fontSize: 16,
+                    lineHeight: 25,
+                    fontFamily: "Inter_400Regular",
+                  }}
+                >
+                  Get local wall-clock lecture alarms, home-screen widgets, offline SQLite access,
+                  and instant course rep venue broadcasts on your iPhone or iPad. Free with zero
+                  ads.
+                </Text>
+
+                <View
+                  style={{
+                    marginTop: 24,
+                    flexDirection: isTablet ? "row" : "column",
+                    alignItems: isTablet ? "center" : "stretch",
+                    gap: 14,
+                  }}
+                >
+                  <AppStoreBadgeButton variant="indigo" size="lg" fullWidth={!isTablet} />
+
+                  <Pressable
+                    onPress={() => router.push("/setup/welcome?mode=signup" as any)}
+                    style={{
+                      paddingHorizontal: 22,
+                      paddingVertical: 15,
+                      borderRadius: 14,
+                      backgroundColor: "rgba(255, 255, 255, 0.08)",
+                      borderWidth: 1,
+                      borderColor: "rgba(255, 255, 255, 0.2)",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: "#FFFFFF",
+                        fontSize: 15,
+                        lineHeight: 20,
+                        fontFamily: "Inter_600SemiBold",
+                      }}
+                    >
+                      Use web companion
+                    </Text>
+                    <ArrowRight size={16} color="#FFFFFF" />
+                  </Pressable>
+                </View>
+
+                <View
+                  style={{
+                    marginTop: 22,
+                    flexDirection: "row",
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                    gap: 16,
+                  }}
+                >
+                  {[
+                    "Free on the App Store",
+                    "Works 100% offline",
+                    "Home & Lock screen widgets",
+                    "iOS 16.4+",
+                  ].map((item) => (
+                    <View key={item} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                      <CheckCircle2 size={15} color="#4ADE80" />
+                      <Text
+                        style={{
+                          color: "#CBD5E1",
+                          fontSize: 13,
+                          lineHeight: 18,
+                          fontFamily: "Inter_500Medium",
+                        }}
+                      >
+                        {item}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+
+              {/* Right Column: Dual iPhone Preview Showcase */}
+              <Pressable
+                onPress={() => Linking.openURL(APP_STORE_URL)}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: isTablet ? 18 : 12,
+                }}
+              >
+                <PhoneScreenshotFrame
+                  source={screenTodayR2}
+                  width={isDesktop ? 200 : 165}
+                  darkSurface
+                  elevated
+                  tag="iOS App"
+                />
+                {isTablet ? (
+                  <PhoneScreenshotFrame
+                    source={screenWidgets}
+                    width={isDesktop ? 185 : 155}
+                    darkSurface
+                    tag="iOS Widgets"
+                  />
+                ) : null}
+              </Pressable>
+            </View>
+          </ScrollReveal>
+        </View>
+
+        {/* =================================================================== */}
+        {/* 8. INTERACTIVE CLASS PREVIEW BANNER                                 */}
         {/* =================================================================== */}
         <View
           style={{
@@ -2415,7 +2721,7 @@ export function WebLandingPage() {
         </View>
 
         {/* =================================================================== */}
-        {/* 8. COMPLIANT PRODUCT FOOTER (GOOGLE OAUTH & APP STORE VERIFIED)     */}
+        {/* 9. COMPLIANT PRODUCT FOOTER (GOOGLE OAUTH & APP STORE VERIFIED)     */}
         {/* =================================================================== */}
         <View
           style={{
@@ -2482,16 +2788,16 @@ export function WebLandingPage() {
             </View>
 
             <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 20 }}>
-              <Pressable onPress={() => Linking.openURL(APP_STORE_SEARCH_URL)}>
+              <Pressable onPress={() => Linking.openURL(APP_STORE_URL)}>
                 <Text
                   style={{
-                    color: "#334155",
+                    color: "#4F46E5",
                     fontSize: 14,
                     lineHeight: 20,
-                    fontFamily: "Inter_500Medium",
+                    fontFamily: "Inter_600SemiBold",
                   }}
                 >
-                  iOS App Store
+                   Download on the App Store
                 </Text>
               </Pressable>
 
