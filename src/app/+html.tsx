@@ -1,5 +1,5 @@
 import React, { type PropsWithChildren } from "react";
-import { ScrollViewStyleReset } from "expo-router/html";
+import { ScrollViewStyleReset, useServerDocumentContext } from "expo-router/html";
 
 const SITE_URL = "https://studenttimetable.app";
 const SITE_TITLE = "TT: Student Timetable — Your class, your timetable, on time.";
@@ -8,8 +8,10 @@ const SITE_DESCRIPTION =
 const OG_IMAGE_URL = `${SITE_URL}/og-preview.png`;
 
 export default function RootHtml({ children }: PropsWithChildren) {
+  const { bodyAttributes, bodyNodes, htmlAttributes, headNodes } = useServerDocumentContext();
+
   return (
-    <html lang="en">
+    <html lang="en" {...htmlAttributes}>
       <head>
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
@@ -56,8 +58,12 @@ export default function RootHtml({ children }: PropsWithChildren) {
         />
 
         <ScrollViewStyleReset />
+        {headNodes}
       </head>
-      <body>{children}</body>
+      <body {...bodyAttributes}>
+        {children}
+        {bodyNodes}
+      </body>
     </html>
   );
 }
