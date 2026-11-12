@@ -7,117 +7,426 @@ import {
   Image,
   useWindowDimensions,
   Linking,
+  ImageSourcePropType,
 } from "react-native";
 import { useRouter } from "expo-router";
 import {
-  Sparkles,
   Bell,
   Users,
   CheckCircle2,
-  AlertCircle,
   ArrowRight,
-  MapPin,
   ShieldCheck,
   WifiOff,
-  Scan,
   BarChart2,
   Layers,
   Smartphone,
   Check,
+  Calendar,
+  BookOpen,
 } from "lucide-react-native";
 import { Text } from "@/components/ui/Text";
-import { QrMatrix } from "@/components/timetable/QrMatrix";
 
 const brandLogo = require("../../../logo/Logo-dark.png");
 
+// Authentic 720x1600 (9:20) TT Product Screenshots from Screens/
+const screenTodayR2 = require("../../../Screens/90 Today · Release 2.png");
+const screenClassesWeek = require("../../../Screens/35 Classes.png");
+const screenClassesMonth = require("../../../Screens/36 Classes · month.png");
+const screenQrCard = require("../../../Screens/61 QR card · save or post.png");
+const screenClassPreview = require("../../../Screens/03 Class preview.png");
+const screenClassSwitcher = require("../../../Screens/34 Class switcher.png");
+const screenMoveClass = require("../../../Screens/40 Cancel or move one class.png");
+const screenClassCancelled = require("../../../Screens/41 Class cancelled.png");
+const screenLockNotifications = require("../../../Screens/43 Lock screen notifications.png");
+const screenTodayOffline = require("../../../Screens/31 Today · offline.png");
+const screenWidgets = require("../../../Screens/100 Home-screen widgets.png");
+const screenCheckIn = require("../../../Screens/44 Check-in.png");
+const screenAssignments = require("../../../Screens/50 Assignments.png");
+const screenGroupPoll = require("../../../Screens/55 Group poll.png");
+const screenReports = require("../../../Screens/77 Reports.png");
+const screenExams = require("../../../Screens/91 Exams.png");
+const screenReading = require("../../../Screens/95 Reading.png");
+const screenWeeklySummary = require("../../../Screens/99 Weekly summary.png");
+
 const APP_STORE_SEARCH_URL = "https://apps.apple.com/search?term=TT%20Student%20Timetable";
 
-type HeroPreviewTab = "today" | "calendar" | "assignments" | "attendance";
+type HeroTabKey = "today" | "sharing" | "calendar" | "assignments" | "exams" | "attendance";
+
+interface HeroShowcaseConfig {
+  key: HeroTabKey;
+  label: string;
+  tintBg: string;
+  tintBorder: string;
+  tintText: string;
+  caption: string;
+  left: {
+    source: ImageSourcePropType;
+    tag: string;
+    title: string;
+  };
+  center: {
+    source: ImageSourcePropType;
+    tag: string;
+    title: string;
+  };
+  right: {
+    source: ImageSourcePropType;
+    tag: string;
+    title: string;
+  };
+}
+
+const HERO_SHOWCASES: HeroShowcaseConfig[] = [
+  {
+    key: "today",
+    label: "Today",
+    tintBg: "#EEF2FF",
+    tintBorder: "#C7D2FE",
+    tintText: "#4F46E5",
+    caption:
+      "Your next lecture countdown, moved-venue alerts from your course rep, and upcoming CBT exams in one calm view.",
+    left: {
+      source: screenClassSwitcher,
+      tag: "Main + carry-over classes",
+      title: "Follow your level and carry-over courses together",
+    },
+    center: {
+      source: screenTodayR2,
+      tag: "Today view",
+      title: "Next class in 19 min · moved venues highlighted",
+    },
+    right: {
+      source: screenWeeklySummary,
+      tag: "Weekly summary",
+      title: "See classes attended, reading hours, and next week",
+    },
+  },
+  {
+    key: "sharing",
+    label: "Course rep link",
+    tintBg: "#EEF2FF",
+    tintBorder: "#C7D2FE",
+    tintText: "#4F46E5",
+    caption:
+      "One course rep sets up the timetable and shares code CSC3X9 or a QR card to WhatsApp. Every classmate follows in seconds.",
+    left: {
+      source: screenQrCard,
+      tag: "Share to WhatsApp",
+      title: "Scan QR card or enter 6-character code CSC3X9",
+    },
+    center: {
+      source: screenClassPreview,
+      tag: "No login needed to look",
+      title: "Preview courses, weekly load, and rep details first",
+    },
+    right: {
+      source: screenMoveClass,
+      tag: "Instant rep broadcast",
+      title: "Move one lecture to LT2 and notify 128 followers",
+    },
+  },
+  {
+    key: "calendar",
+    label: "Classes & calendar",
+    tintBg: "#EEF2FF",
+    tintBorder: "#C7D2FE",
+    tintText: "#4F46E5",
+    caption:
+      "Switch smoothly between card lists and day, week, or month calendars—with colour-coded stripes for every course.",
+    left: {
+      source: screenClassesWeek,
+      tag: "Week strip",
+      title: "Scan your day with Attended and Moved status pills",
+    },
+    center: {
+      source: screenClassesMonth,
+      tag: "Month calendar",
+      title: "Spot busy weeks and lecture days across the semester",
+    },
+    right: {
+      source: screenReading,
+      tag: "Reading timetable",
+      title: "Plan personal study sessions and keep a weekly streak",
+    },
+  },
+  {
+    key: "assignments",
+    label: "Assignments & polls",
+    tintBg: "#FEF3C7",
+    tintBorder: "#FDE68A",
+    tintText: "#92400E",
+    caption:
+      "Track solo and group work sorted by due date, suggest missing tasks to your rep, and join project groups without WhatsApp chaos.",
+    left: {
+      source: screenAssignments,
+      tag: "Due soon & missing",
+      title: "Solo and group deadlines organised by week",
+    },
+    center: {
+      source: screenGroupPoll,
+      tag: "Group sign-up poll",
+      title: "Pick your project group with automatic member caps",
+    },
+    right: {
+      source: screenCheckIn,
+      tag: "Add from class",
+      title: "Log new assignments right after a lecture ends",
+    },
+  },
+  {
+    key: "exams",
+    label: "Exams & reading",
+    tintBg: "#EDE9FE",
+    tintBorder: "#DDD6FE",
+    tintText: "#5B21B6",
+    caption:
+      "Count down to your first paper, keep CBT hall and seat numbers private on your phone, and balance revision hours.",
+    left: {
+      source: screenExams,
+      tag: "Exam timetable",
+      title: "Written & CBT dates, venues, and private seat numbers",
+    },
+    center: {
+      source: screenReading,
+      tag: "Personal reading",
+      title: "Track weekly study goals and revision streaks",
+    },
+    right: {
+      source: screenTodayR2,
+      tag: "Exam countdowns",
+      title: "Upcoming papers surface automatically on Today",
+    },
+  },
+  {
+    key: "attendance",
+    label: "75% attendance",
+    tintBg: "#DCFCE7",
+    tintBorder: "#BBF7D0",
+    tintText: "#166534",
+    caption:
+      "Answer a 1-tap check-in after class and always know where you stand against your university's 75% exam eligibility rule.",
+    left: {
+      source: screenCheckIn,
+      tag: "Post-class check-in",
+      title: "One tap 10 minutes after class: Attended or Missed",
+    },
+    center: {
+      source: screenReports,
+      tag: "75% target math",
+      title: "Exact catch-up guidance before exams begin",
+    },
+    right: {
+      source: screenWeeklySummary,
+      tag: "Weekly recap",
+      title: "Steady progress across classes, reading, and tasks",
+    },
+  },
+];
+
+function PhoneScreenshotFrame({
+  source,
+  width,
+  tag,
+  title,
+  subtitle,
+  elevated = false,
+  darkSurface = false,
+  accentColor = "#4F46E5",
+  accentBg = "#EEF2FF",
+}: {
+  source: ImageSourcePropType;
+  width: number;
+  tag?: string;
+  title?: string;
+  subtitle?: string;
+  elevated?: boolean;
+  darkSurface?: boolean;
+  accentColor?: string;
+  accentBg?: string;
+}) {
+  // Exact 9:20 ratio for 720x1600 PNGs
+  const screenHeight = Math.round((width * 20) / 9);
+  const bezelPadding = Math.max(8, Math.round(width * 0.036));
+  const outerWidth = width + bezelPadding * 2;
+  const outerRadius = Math.round(width * 0.13);
+  const innerRadius = Math.round(width * 0.1);
+
+  return (
+    <View style={{ width: outerWidth, alignItems: "center" }}>
+      {tag ? (
+        <View
+          style={{
+            marginBottom: 12,
+            paddingHorizontal: 12,
+            paddingVertical: 5,
+            borderRadius: 999,
+            backgroundColor: darkSurface ? "rgba(79, 70, 229, 0.22)" : accentBg,
+            borderWidth: 1,
+            borderColor: darkSurface ? "rgba(129, 140, 248, 0.35)" : "rgba(79, 70, 229, 0.16)",
+          }}
+        >
+          <Text
+            style={{
+              color: darkSurface ? "#C7D2FE" : accentColor,
+              fontSize: 12,
+              lineHeight: 16,
+              fontFamily: "Inter_600SemiBold",
+            }}
+          >
+            {tag}
+          </Text>
+        </View>
+      ) : null}
+
+      {/* Titanium Hardware Frame */}
+      <View
+        style={{
+          width: outerWidth,
+          padding: bezelPadding,
+          borderRadius: outerRadius,
+          backgroundColor: "#0F172A",
+          borderWidth: elevated ? 2 : 1.5,
+          borderColor: elevated ? "#4F46E5" : darkSurface ? "rgba(255, 255, 255, 0.18)" : "#CBD5E1",
+          shadowColor: "#0F172A",
+          shadowOffset: { width: 0, height: elevated ? 24 : 14 },
+          shadowOpacity: elevated ? 0.22 : 0.12,
+          shadowRadius: elevated ? 36 : 22,
+          elevation: elevated ? 16 : 8,
+        }}
+      >
+        <View
+          style={{
+            width,
+            height: screenHeight,
+            borderRadius: innerRadius,
+            overflow: "hidden",
+            backgroundColor: "#F8FAFC",
+          }}
+        >
+          <Image
+            source={source}
+            style={{ width, height: screenHeight }}
+            resizeMode="cover"
+            accessibilityLabel={title ?? "TT app screen"}
+          />
+        </View>
+      </View>
+
+      {title ? (
+        <View style={{ marginTop: 14, paddingHorizontal: 4, alignItems: "center" }}>
+          <Text
+            style={{
+              color: darkSurface ? "#F8FAFC" : "#0F172A",
+              fontSize: 15,
+              lineHeight: 22,
+              fontFamily: "Inter_600SemiBold",
+              textAlign: "center",
+            }}
+          >
+            {title}
+          </Text>
+          {subtitle ? (
+            <Text
+              style={{
+                marginTop: 4,
+                color: darkSurface ? "#94A3B8" : "#475569",
+                fontSize: 13,
+                lineHeight: 19,
+                fontFamily: "Inter_400Regular",
+                textAlign: "center",
+              }}
+            >
+              {subtitle}
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
+    </View>
+  );
+}
 
 export function WebLandingPage() {
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const isDesktop = width >= 960;
-  const isTablet = width >= 680;
+  const isDesktop = width >= 1024;
+  const isTablet = width >= 720;
 
+  const [activeHeroTab, setActiveHeroTab] = useState<HeroTabKey>("today");
   const [shareCodeInput, setShareCodeInput] = useState("CSC3X9");
-  const [heroTab, setHeroTab] = useState<HeroPreviewTab>("today");
+
+  const currentHero =
+    HERO_SHOWCASES.find((item) => item.key === activeHeroTab) ?? HERO_SHOWCASES[0]!;
 
   const handlePreviewCode = (customCode?: string) => {
     const clean = (customCode ?? shareCodeInput).trim().toUpperCase() || "CSC3X9";
     router.push(`/join/${clean}` as any);
   };
 
+  // Responsive phone widths so screenshots are large, crisp, and legible on every viewport
+  const heroCenterWidth = isDesktop
+    ? 288
+    : isTablet
+      ? 261
+      : Math.min(279, Math.max(234, width - 72));
+  const heroSideWidth = isDesktop ? 252 : 225;
+  const chapterThreeUpWidth = isDesktop
+    ? 261
+    : isTablet
+      ? 225
+      : Math.min(270, Math.max(234, width - 80));
+  const bentoPhoneWidth = isDesktop
+    ? 252
+    : isTablet
+      ? 234
+      : Math.min(261, Math.max(225, width - 88));
+
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: "#090D16" }}
+      style={{ flex: 1, backgroundColor: "#F8FAFC" }}
       contentContainerStyle={{ flexGrow: 1 }}
       showsVerticalScrollIndicator={false}
     >
-      {/* AMBIENT RADIAL GLOW BACKDROP */}
-      <View
-        pointerEvents="none"
-        style={{
-          position: "absolute",
-          top: -120,
-          left: isDesktop ? "15%" : -80,
-          width: isDesktop ? 640 : 380,
-          height: isDesktop ? 640 : 380,
-          borderRadius: 999,
-          backgroundColor: "rgba(79, 70, 229, 0.22)",
-        }}
-      />
-      <View
-        pointerEvents="none"
-        style={{
-          position: "absolute",
-          top: 160,
-          right: isDesktop ? "10%" : -100,
-          width: isDesktop ? 520 : 320,
-          height: isDesktop ? 520 : 320,
-          borderRadius: 999,
-          backgroundColor: "rgba(124, 58, 237, 0.16)",
-        }}
-      />
-
-      {/* 1. STICKY TOP NAVIGATION BAR */}
+      {/* ===================================================================== */}
+      {/* 1. STICKY EDITORIAL NAVIGATION HEADER (TT Light Canvas)               */}
+      {/* ===================================================================== */}
       <View
         style={{
           width: "100%",
+          backgroundColor: "rgba(255, 255, 255, 0.94)",
           borderBottomWidth: 1,
-          borderBottomColor: "rgba(255, 255, 255, 0.08)",
-          backgroundColor: "rgba(9, 13, 22, 0.88)",
+          borderBottomColor: "#E2E8F0",
         }}
       >
         <View
           style={{
-            maxWidth: 1200,
             width: "100%",
+            maxWidth: 1200,
             alignSelf: "center",
-            paddingHorizontal: isDesktop ? 32 : 16,
-            height: 72,
+            paddingHorizontal: isDesktop ? 32 : 20,
+            paddingVertical: 14,
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 12,
           }}
         >
-          {/* Brand Logo + Title */}
+          {/* Brand Lockup */}
           <Pressable
             onPress={() => router.push("/" as any)}
-            accessibilityRole="button"
-            style={{ flexDirection: "row", alignItems: "center", columnGap: 12 }}
+            style={{ flexDirection: "row", alignItems: "center", gap: 12 }}
           >
             <View
               style={{
-                width: 40,
-                height: 40,
-                borderRadius: 11,
-                backgroundColor: "#1E1B4B",
-                borderWidth: 1,
-                borderColor: "rgba(129, 140, 248, 0.4)",
-                overflow: "hidden",
+                width: 38,
+                height: 38,
+                borderRadius: 10,
+                backgroundColor: "#0F172A",
                 alignItems: "center",
                 justifyContent: "center",
+                overflow: "hidden",
+                borderWidth: 1,
+                borderColor: "#E2E8F0",
               }}
             >
               <Image
@@ -129,438 +438,346 @@ export function WebLandingPage() {
             </View>
             <View>
               <Text
-                variant="title-card"
                 style={{
-                  color: "#FFFFFF",
-                  fontFamily: "Inter_700Bold",
-                  fontSize: 17,
+                  color: "#0F172A",
+                  fontSize: 16,
                   lineHeight: 20,
+                  fontFamily: "Inter_700Bold",
                 }}
               >
                 TT: Student Timetable
               </Text>
-              <Text variant="caption" style={{ color: "#94A3B8", fontSize: 11 }}>
-                Classes · Reminders · Course Sharing
+              <Text
+                style={{
+                  color: "#475569",
+                  fontSize: 12,
+                  lineHeight: 16,
+                  fontFamily: "Inter_400Regular",
+                }}
+              >
+                Your class, your timetable, on time.
               </Text>
             </View>
           </Pressable>
 
           {/* Right Navigation Actions */}
-          <View
-            style={{ flexDirection: "row", alignItems: "center", columnGap: isTablet ? 14 : 8 }}
-          >
+          <View style={{ flexDirection: "row", alignItems: "center", gap: isTablet ? 12 : 8 }}>
             {isTablet ? (
               <Pressable
-                onPress={() => router.push("/privacy" as any)}
-                accessibilityRole="link"
-                style={{ paddingHorizontal: 10, paddingVertical: 8 }}
+                onPress={() => handlePreviewCode("CSC3X9")}
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                  borderRadius: 8,
+                }}
               >
-                <Text variant="label" style={{ color: "#CBD5E1" }}>
-                  Privacy Policy
+                <Text
+                  style={{
+                    color: "#334155",
+                    fontSize: 14,
+                    lineHeight: 20,
+                    fontFamily: "Inter_500Medium",
+                  }}
+                >
+                  Live demo class
                 </Text>
               </Pressable>
             ) : null}
 
             <Pressable
-              onPress={() => router.push("/setup/welcome?mode=signin" as any)}
-              accessibilityRole="button"
+              onPress={() => router.push("/privacy" as any)}
               style={{
-                paddingHorizontal: 14,
-                height: 40,
-                borderRadius: 10,
-                borderWidth: 1,
-                borderColor: "rgba(255, 255, 255, 0.16)",
-                backgroundColor: "rgba(255, 255, 255, 0.05)",
-                alignItems: "center",
-                justifyContent: "center",
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                borderRadius: 8,
               }}
             >
-              <Text variant="label" style={{ color: "#F8FAFC" }}>
+              <Text
+                style={{
+                  color: "#334155",
+                  fontSize: 14,
+                  lineHeight: 20,
+                  fontFamily: "Inter_500Medium",
+                }}
+              >
+                Privacy
+              </Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => router.push("/setup/welcome?mode=signin" as any)}
+              style={{
+                paddingHorizontal: 14,
+                paddingVertical: 9,
+                borderRadius: 10,
+                borderWidth: 1,
+                borderColor: "#CBD5E1",
+                backgroundColor: "#FFFFFF",
+              }}
+            >
+              <Text
+                style={{
+                  color: "#0F172A",
+                  fontSize: 14,
+                  lineHeight: 20,
+                  fontFamily: "Inter_600SemiBold",
+                }}
+              >
                 Sign in
               </Text>
             </Pressable>
 
             <Pressable
               onPress={() => router.push("/setup/welcome?mode=signup" as any)}
-              accessibilityRole="button"
               style={{
                 paddingHorizontal: 16,
-                height: 40,
+                paddingVertical: 9,
                 borderRadius: 10,
                 backgroundColor: "#4F46E5",
-                alignItems: "center",
-                justifyContent: "center",
               }}
             >
-              <Text variant="label" style={{ color: "#FFFFFF", fontFamily: "Inter_600SemiBold" }}>
-                {isTablet ? "Get Started Free" : "Start"}
+              <Text
+                style={{
+                  color: "#FFFFFF",
+                  fontSize: 14,
+                  lineHeight: 20,
+                  fontFamily: "Inter_600SemiBold",
+                }}
+              >
+                Get TT free
               </Text>
             </Pressable>
           </View>
         </View>
       </View>
 
-      {/* 2. HERO SECTION (UI-FIRST + PAIN-TO-PEACE HEADLINE + ZERO-LOGIN CLASS CODE PREVIEW) */}
+      {/* ===================================================================== */}
+      {/* 2. NOTION CALENDAR–STYLE EDITORIAL HERO + MULTI-SCREEN STAGE          */}
+      {/* ===================================================================== */}
       <View
         style={{
-          maxWidth: 1200,
           width: "100%",
-          alignSelf: "center",
-          paddingHorizontal: isDesktop ? 32 : 18,
-          paddingTop: isDesktop ? 64 : 36,
-          paddingBottom: isDesktop ? 72 : 48,
-          flexDirection: isDesktop ? "row" : "column",
-          alignItems: "center",
-          justifyContent: "space-between",
-          columnGap: 48,
-          rowGap: 44,
+          backgroundColor: "#FFFFFF",
+          borderBottomWidth: 1,
+          borderBottomColor: "#E2E8F0",
         }}
       >
-        {/* Left Column: Editorial Copy + Interactive Share Code Bar + Store CTAs */}
-        <View style={{ flex: isDesktop ? 1.08 : undefined, width: "100%" }}>
-          {/* Category Badge */}
+        <View
+          style={{
+            width: "100%",
+            maxWidth: 1200,
+            alignSelf: "center",
+            paddingHorizontal: isDesktop ? 32 : 20,
+            paddingTop: isDesktop ? 64 : 40,
+            paddingBottom: isDesktop ? 72 : 48,
+            alignItems: "center",
+          }}
+        >
+          {/* Pill Badge */}
           <View
             style={{
-              alignSelf: isDesktop ? "flex-start" : "center",
               flexDirection: "row",
               alignItems: "center",
-              columnGap: 8,
+              gap: 8,
               paddingHorizontal: 14,
-              paddingVertical: 7,
+              paddingVertical: 6,
               borderRadius: 999,
-              backgroundColor: "rgba(79, 70, 229, 0.18)",
+              backgroundColor: "#EEF2FF",
               borderWidth: 1,
-              borderColor: "rgba(129, 140, 248, 0.36)",
+              borderColor: "#C7D2FE",
               marginBottom: 20,
             }}
           >
-            <Sparkles size={14} color="#818CF8" strokeWidth={2.2} />
-            <Text
-              variant="label-sm"
+            <View
               style={{
-                color: "#E0E7FF",
-                fontFamily: "Inter_700Bold",
-                letterSpacing: 0.6,
+                width: 8,
+                height: 8,
+                borderRadius: 999,
+                backgroundColor: "#4F46E5",
+              }}
+            />
+            <Text
+              style={{
+                color: "#4338CA",
+                fontSize: 13,
+                lineHeight: 18,
+                fontFamily: "Inter_600SemiBold",
               }}
             >
-              NOW LIVE ON iOS, iPAD & WEB · BUILT FOR UNIVERSITY LIFE
+              Built for university students & course reps · iOS, Android & Web
             </Text>
           </View>
 
+          {/* Editorial Display Headline (Sentence case per TT Style Guide) */}
           <Text
-            variant="display"
             style={{
-              color: "#FFFFFF",
-              fontSize: isDesktop ? 54 : isTablet ? 44 : 34,
-              lineHeight: isDesktop ? 60 : isTablet ? 50 : 40,
+              color: "#0F172A",
+              fontSize: isDesktop ? 56 : isTablet ? 44 : 34,
+              lineHeight: isDesktop ? 64 : isTablet ? 52 : 40,
               fontFamily: "Inter_700Bold",
-              textAlign: isDesktop ? "left" : "center",
-              marginBottom: 18,
+              textAlign: "center",
+              maxWidth: 860,
+              letterSpacing: -1,
             }}
           >
-            Your entire semester.{"\n"}
-            <Text
-              variant="display"
-              style={{
-                color: "#818CF8",
-                fontSize: isDesktop ? 54 : isTablet ? 44 : 34,
-                lineHeight: isDesktop ? 60 : isTablet ? 50 : 40,
-                fontFamily: "Inter_700Bold",
-              }}
-            >
-              Always on time.
-            </Text>
+            Your class, your timetable, on time.
           </Text>
 
+          {/* Supporting Lead Copy */}
           <Text
-            variant="body-lg"
             style={{
-              color: "#CBD5E1",
-              fontSize: isDesktop ? 19 : 16,
-              lineHeight: isDesktop ? 29 : 25,
-              textAlign: isDesktop ? "left" : "center",
-              marginBottom: 28,
+              marginTop: 18,
+              color: "#334155",
+              fontSize: isDesktop ? 20 : 17,
+              lineHeight: isDesktop ? 30 : 26,
+              fontFamily: "Inter_400Regular",
+              textAlign: "center",
+              maxWidth: 720,
             }}
           >
-            Stop digging through WhatsApp group chats for blurry timetable photos and last-minute
-            venue changes. Join your department&apos;s shared timetable in seconds with one
-            6-character code—works 100% offline with wall-clock class alarms and 75% attendance
-            tracking.
+            One shared link from your course rep puts every lecture, venue change, assignment, CBT
+            exam, and reading session on your phone—with reminders that work even when data is off.
           </Text>
 
-          {/* ZERO-LOGIN DISCOVERY: Interactive 6-Character Class Code Bar */}
+          {/* Hero Primary CTAs */}
           <View
             style={{
-              backgroundColor: "#131C31",
-              borderRadius: 18,
-              borderWidth: 1,
-              borderColor: "rgba(129, 140, 248, 0.32)",
-              padding: 16,
-              marginBottom: 20,
-            }}
-          >
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: 10,
-              }}
-            >
-              <Text
-                variant="label"
-                style={{ color: "#E0E7FF", fontFamily: "Inter_600SemiBold", fontSize: 13 }}
-              >
-                Have a class share code? Preview a live timetable right now:
-              </Text>
-              <Text variant="caption" style={{ color: "#818CF8", fontFamily: "Inter_600SemiBold" }}>
-                No login required
-              </Text>
-            </View>
-
-            <View
-              style={{
-                flexDirection: isTablet ? "row" : "column",
-                alignItems: "stretch",
-                columnGap: 10,
-                rowGap: 10,
-              }}
-            >
-              <View
-                style={{
-                  flex: 1,
-                  height: 50,
-                  borderRadius: 12,
-                  backgroundColor: "#090D16",
-                  borderWidth: 1,
-                  borderColor: "#334155",
-                  flexDirection: "row",
-                  alignItems: "center",
-                  paddingHorizontal: 14,
-                }}
-              >
-                <Scan size={18} color="#818CF8" strokeWidth={2} />
-                <TextInput
-                  value={shareCodeInput}
-                  onChangeText={(t) => setShareCodeInput(t.toUpperCase())}
-                  placeholder="CSC3X9"
-                  placeholderTextColor="#64748B"
-                  maxLength={10}
-                  autoCapitalize="characters"
-                  style={{
-                    flex: 1,
-                    marginLeft: 10,
-                    color: "#FFFFFF",
-                    fontFamily: "Inter_700Bold",
-                    fontSize: 16,
-                    letterSpacing: 2,
-                  }}
-                />
-              </View>
-
-              <Pressable
-                onPress={() => handlePreviewCode()}
-                accessibilityRole="button"
-                style={{
-                  height: 50,
-                  paddingHorizontal: 22,
-                  borderRadius: 12,
-                  backgroundColor: "#4F46E5",
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  columnGap: 8,
-                }}
-              >
-                <Text variant="label-lg" style={{ color: "#FFFFFF", fontFamily: "Inter_700Bold" }}>
-                  Preview Class
-                </Text>
-                <ArrowRight size={17} color="#FFFFFF" strokeWidth={2.4} />
-              </Pressable>
-            </View>
-
-            {/* Quick Sample Class Pills */}
-            <View
-              style={{
-                flexDirection: "row",
-                flexWrap: "wrap",
-                alignItems: "center",
-                gap: 8,
-                marginTop: 12,
-              }}
-            >
-              <Text variant="caption" style={{ color: "#94A3B8" }}>
-                Try sample codes:
-              </Text>
-              {[
-                { code: "CSC3X9", label: "CSC3X9 · 300L Computer Science" },
-                { code: "CSC200", label: "CSC200 · Carry-over" },
-                { code: "ECO300", label: "ECO300 · Elective" },
-              ].map((preset) => (
-                <Pressable
-                  key={preset.code}
-                  onPress={() => {
-                    setShareCodeInput(preset.code);
-                    handlePreviewCode(preset.code);
-                  }}
-                  accessibilityRole="button"
-                  style={{
-                    paddingHorizontal: 10,
-                    paddingVertical: 4,
-                    borderRadius: 999,
-                    backgroundColor: "rgba(99, 102, 241, 0.16)",
-                    borderWidth: 1,
-                    borderColor: "rgba(129, 140, 248, 0.28)",
-                  }}
-                >
-                  <Text
-                    variant="caption"
-                    style={{ color: "#C7D2FE", fontFamily: "Inter_600SemiBold" }}
-                  >
-                    {preset.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-
-          {/* Primary Download & Web App Buttons */}
-          <View
-            style={{
+              marginTop: 28,
               flexDirection: isTablet ? "row" : "column",
               alignItems: "center",
-              columnGap: 12,
-              rowGap: 12,
+              justifyContent: "center",
+              gap: 12,
+              width: isTablet ? "auto" : "100%",
             }}
           >
             <Pressable
-              onPress={() => void Linking.openURL(APP_STORE_SEARCH_URL)}
-              accessibilityRole="button"
+              onPress={() => Linking.openURL(APP_STORE_SEARCH_URL)}
               style={{
-                width: isTablet ? undefined : "100%",
-                flex: isTablet ? 1 : undefined,
-                height: 54,
-                borderRadius: 14,
-                backgroundColor: "#FFFFFF",
+                width: isTablet ? "auto" : "100%",
+                paddingHorizontal: 24,
+                paddingVertical: 14,
+                borderRadius: 12,
+                backgroundColor: "#4F46E5",
                 flexDirection: "row",
                 alignItems: "center",
                 justifyContent: "center",
-                columnGap: 10,
-                paddingHorizontal: 20,
+                gap: 10,
+                shadowColor: "#4F46E5",
+                shadowOffset: { width: 0, height: 8 },
+                shadowOpacity: 0.25,
+                shadowRadius: 16,
               }}
             >
-              <Text style={{ fontSize: 20, color: "#090D16" }}></Text>
-              <View>
-                <Text variant="caption" style={{ color: "#475569", fontSize: 10, lineHeight: 12 }}>
-                  Download on the
-                </Text>
-                <Text
-                  variant="label-lg"
-                  style={{ color: "#090D16", fontFamily: "Inter_700Bold", lineHeight: 18 }}
-                >
-                  App Store (iPhone & iPad)
-                </Text>
-              </View>
+              <Smartphone size={18} color="#FFFFFF" />
+              <Text
+                style={{
+                  color: "#FFFFFF",
+                  fontSize: 16,
+                  lineHeight: 20,
+                  fontFamily: "Inter_600SemiBold",
+                }}
+              >
+                Download on the App Store
+              </Text>
             </Pressable>
 
             <Pressable
-              onPress={() => router.push("/setup/welcome" as any)}
-              accessibilityRole="button"
+              onPress={() => router.push("/setup/welcome?mode=signup" as any)}
               style={{
-                width: isTablet ? undefined : "100%",
-                flex: isTablet ? 1 : undefined,
-                height: 54,
-                borderRadius: 14,
-                backgroundColor: "rgba(255, 255, 255, 0.08)",
-                borderWidth: 1,
-                borderColor: "rgba(255, 255, 255, 0.2)",
+                width: isTablet ? "auto" : "100%",
+                paddingHorizontal: 22,
+                paddingVertical: 14,
+                borderRadius: 12,
+                backgroundColor: "#0F172A",
                 flexDirection: "row",
                 alignItems: "center",
                 justifyContent: "center",
-                columnGap: 10,
-                paddingHorizontal: 20,
+                gap: 8,
               }}
             >
-              <Smartphone size={18} color="#E0E7FF" strokeWidth={2.2} />
               <Text
-                variant="label-lg"
-                style={{ color: "#FFFFFF", fontFamily: "Inter_600SemiBold" }}
+                style={{
+                  color: "#FFFFFF",
+                  fontSize: 16,
+                  lineHeight: 20,
+                  fontFamily: "Inter_600SemiBold",
+                }}
               >
-                Open Web Companion
+                Open web companion
+              </Text>
+              <ArrowRight size={17} color="#FFFFFF" />
+            </Pressable>
+
+            <Pressable
+              onPress={() => handlePreviewCode("CSC3X9")}
+              style={{
+                width: isTablet ? "auto" : "100%",
+                paddingHorizontal: 20,
+                paddingVertical: 14,
+                borderRadius: 12,
+                backgroundColor: "#F8FAFC",
+                borderWidth: 1,
+                borderColor: "#CBD5E1",
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+              }}
+            >
+              <Text
+                style={{
+                  color: "#0F172A",
+                  fontSize: 15,
+                  lineHeight: 20,
+                  fontFamily: "Inter_600SemiBold",
+                }}
+              >
+                Preview class CSC3X9
               </Text>
             </Pressable>
           </View>
 
-          {/* Trust Micro-Pills */}
+          {/* Notion Calendar–Style Interactive Feature Switcher Tabs */}
           <View
             style={{
+              marginTop: 40,
               flexDirection: "row",
               flexWrap: "wrap",
               alignItems: "center",
-              justifyContent: isDesktop ? "flex-start" : "center",
-              gap: 16,
-              marginTop: 22,
-            }}
-          >
-            {[
-              { icon: WifiOff, text: "Works 100% Offline" },
-              { icon: Bell, text: "Exact Wall-Clock Alarms" },
-              { icon: ShieldCheck, text: "NDPA 2023 Privacy Compliant" },
-            ].map((item) => (
-              <View
-                key={item.text}
-                style={{ flexDirection: "row", alignItems: "center", columnGap: 6 }}
-              >
-                <item.icon size={14} color="#34D399" strokeWidth={2.2} />
-                <Text variant="caption" style={{ color: "#94A3B8", fontFamily: "Inter_500Medium" }}>
-                  {item.text}
-                </Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        {/* Right Column: Interactive Titanium iPhone Mockup with Live Screen Switcher */}
-        <View style={{ flex: isDesktop ? 0.92 : undefined, width: "100%", alignItems: "center" }}>
-          {/* Interactive Screen Switcher Pills above the phone */}
-          <View
-            style={{
-              flexDirection: "row",
-              backgroundColor: "#131C31",
-              borderRadius: 999,
-              padding: 4,
+              justifyContent: "center",
+              gap: 8,
+              padding: 6,
+              borderRadius: 16,
+              backgroundColor: "#F1F5F9",
               borderWidth: 1,
-              borderColor: "rgba(255, 255, 255, 0.12)",
-              marginBottom: 18,
-              columnGap: 4,
+              borderColor: "#E2E8F0",
             }}
           >
-            {(
-              [
-                { id: "today", label: "Today" },
-                { id: "calendar", label: "4-in-1 Calendar" },
-                { id: "assignments", label: "Assignments" },
-                { id: "attendance", label: "75% Target" },
-              ] as const
-            ).map((tab) => {
-              const active = heroTab === tab.id;
+            {HERO_SHOWCASES.map((tab) => {
+              const active = tab.key === activeHeroTab;
               return (
                 <Pressable
-                  key={tab.id}
-                  onPress={() => setHeroTab(tab.id)}
-                  accessibilityRole="button"
+                  key={tab.key}
+                  onPress={() => setActiveHeroTab(tab.key)}
                   style={{
-                    paddingHorizontal: 12,
-                    paddingVertical: 7,
-                    borderRadius: 999,
-                    backgroundColor: active ? "#4F46E5" : "transparent",
+                    paddingHorizontal: 16,
+                    paddingVertical: 9,
+                    borderRadius: 12,
+                    backgroundColor: active ? "#FFFFFF" : "transparent",
+                    borderWidth: 1,
+                    borderColor: active ? "#CBD5E1" : "transparent",
+                    shadowColor: "#0F172A",
+                    shadowOffset: { width: 0, height: active ? 2 : 0 },
+                    shadowOpacity: active ? 0.06 : 0,
+                    shadowRadius: 6,
                   }}
                 >
                   <Text
-                    variant="caption"
                     style={{
-                      color: active ? "#FFFFFF" : "#94A3B8",
-                      fontFamily: active ? "Inter_700Bold" : "Inter_500Medium",
+                      color: active ? "#4F46E5" : "#475569",
+                      fontSize: 14,
+                      lineHeight: 20,
+                      fontFamily: active ? "Inter_600SemiBold" : "Inter_500Medium",
                     }}
                   >
                     {tab.label}
@@ -570,1287 +787,1274 @@ export function WebLandingPage() {
             })}
           </View>
 
-          {/* Titanium iPhone 16 Pro Frame */}
-          <View
-            style={{
-              width: "100%",
-              maxWidth: 380,
-              borderRadius: 44,
-              padding: 10,
-              backgroundColor: "#1E293B",
-              borderWidth: 2,
-              borderColor: "rgba(255, 255, 255, 0.22)",
-            }}
-          >
-            <View
-              style={{
-                borderRadius: 36,
-                backgroundColor: "#F8FAFC",
-                overflow: "hidden",
-                paddingHorizontal: 16,
-                paddingTop: 14,
-                paddingBottom: 20,
-                minHeight: 540,
-              }}
-            >
-              {/* iOS Status Bar + Dynamic Island */}
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: 16,
-                }}
-              >
-                <Text variant="label-sm" style={{ color: "#0F172A", fontFamily: "Inter_700Bold" }}>
-                  9:41
-                </Text>
-                <View
-                  style={{
-                    width: 88,
-                    height: 22,
-                    borderRadius: 999,
-                    backgroundColor: "#090D16",
-                  }}
-                />
-                <Text
-                  variant="caption"
-                  style={{ color: "#0F172A", fontFamily: "Inter_700Bold", fontSize: 11 }}
-                >
-                  5G · 100%
-                </Text>
-              </View>
-
-              {/* Dynamic Screen Content based on Selected Preview Tab */}
-              {heroTab === "today" ? (
-                <View>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      marginBottom: 12,
-                    }}
-                  >
-                    <View>
-                      <Text
-                        variant="title-section"
-                        style={{ color: "#0F172A", fontFamily: "Inter_700Bold", fontSize: 22 }}
-                      >
-                        Today
-                      </Text>
-                      <Text variant="caption" style={{ color: "#64748B" }}>
-                        CSC 300L · Computer Science
-                      </Text>
-                    </View>
-                    <View
-                      style={{
-                        width: 34,
-                        height: 34,
-                        borderRadius: 17,
-                        backgroundColor: "#EEF2FF",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Text
-                        variant="label-sm"
-                        style={{ color: "#4F46E5", fontFamily: "Inter_700Bold" }}
-                      >
-                        AE
-                      </Text>
-                    </View>
-                  </View>
-
-                  {/* Hero Next Class Card */}
-                  <View
-                    style={{
-                      borderRadius: 18,
-                      backgroundColor: "#4F46E5",
-                      padding: 16,
-                      marginBottom: 14,
-                    }}
-                  >
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        marginBottom: 8,
-                      }}
-                    >
-                      <View
-                        style={{
-                          paddingHorizontal: 10,
-                          paddingVertical: 3,
-                          borderRadius: 999,
-                          backgroundColor: "rgba(255,255,255,0.2)",
-                        }}
-                      >
-                        <Text
-                          variant="caption"
-                          style={{ color: "#FFFFFF", fontFamily: "Inter_700Bold" }}
-                        >
-                          NEXT CLASS · IN 25 MIN
-                        </Text>
-                      </View>
-                      <Text variant="caption" style={{ color: "#E0E7FF" }}>
-                        09:00 – 11:00
-                      </Text>
-                    </View>
-                    <Text
-                      variant="title-card"
-                      style={{
-                        color: "#FFFFFF",
-                        fontFamily: "Inter_700Bold",
-                        fontSize: 17,
-                        marginBottom: 4,
-                      }}
-                    >
-                      CSC 301 · Operating Systems
-                    </Text>
-                    <View style={{ flexDirection: "row", alignItems: "center", columnGap: 6 }}>
-                      <MapPin size={13} color="#C7D2FE" strokeWidth={2.2} />
-                      <Text variant="caption" style={{ color: "#E0E7FF" }}>
-                        LT1, Faculty of Science · Dr. Omoregie
-                      </Text>
-                    </View>
-                  </View>
-
-                  {/* Remaining Classes Today */}
-                  <Text
-                    variant="label"
-                    style={{
-                      color: "#0F172A",
-                      fontFamily: "Inter_700Bold",
-                      marginBottom: 8,
-                    }}
-                  >
-                    Later Today (3)
-                  </Text>
-                  {[
-                    {
-                      time: "12:00 – 2:00 pm",
-                      code: "CSC 305",
-                      title: "Database Systems · Practical",
-                      venue: "Hardware Lab, Computer Science",
-                      color: "#0D9488",
-                    },
-                    {
-                      time: "3:00 – 4:30 pm",
-                      code: "MTH 201",
-                      title: "Linear Algebra · Lecture",
-                      venue: "500LT, Physical Sciences",
-                      color: "#EA580C",
-                    },
-                    {
-                      time: "7:00 – 9:00 pm",
-                      code: "STUDY · CSC 301",
-                      title: "Past Questions & Kernel Threads",
-                      venue: "John Harris Library",
-                      color: "#7C3AED",
-                    },
-                  ].map((item) => (
-                    <View
-                      key={item.code}
-                      style={{
-                        backgroundColor: "#FFFFFF",
-                        borderRadius: 14,
-                        borderWidth: 1,
-                        borderColor: "#E2E8F0",
-                        borderLeftWidth: 4,
-                        borderLeftColor: item.color,
-                        padding: 12,
-                        marginBottom: 9,
-                      }}
-                    >
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          marginBottom: 3,
-                        }}
-                      >
-                        <Text
-                          variant="label-sm"
-                          style={{ color: item.color, fontFamily: "Inter_700Bold" }}
-                        >
-                          {item.code}
-                        </Text>
-                        <Text variant="caption" style={{ color: "#64748B" }}>
-                          {item.time}
-                        </Text>
-                      </View>
-                      <Text
-                        variant="label"
-                        style={{ color: "#0F172A", fontFamily: "Inter_600SemiBold" }}
-                      >
-                        {item.title}
-                      </Text>
-                      <Text variant="caption" style={{ color: "#64748B", marginTop: 2 }}>
-                        {item.venue}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              ) : null}
-
-              {heroTab === "calendar" ? (
-                <View>
-                  <Text
-                    variant="title-section"
-                    style={{
-                      color: "#0F172A",
-                      fontFamily: "Inter_700Bold",
-                      fontSize: 20,
-                      marginBottom: 4,
-                    }}
-                  >
-                    Classes & Calendar
-                  </Text>
-                  <Text variant="caption" style={{ color: "#64748B", marginBottom: 12 }}>
-                    All 4 calendars · Main, Carry-over & Electives
-                  </Text>
-
-                  {/* Filter Pills */}
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      flexWrap: "wrap",
-                      gap: 6,
-                      marginBottom: 14,
-                    }}
-                  >
-                    {[
-                      { label: "All", active: true },
-                      { label: "Classes", active: false },
-                      { label: "Assignments", active: false },
-                      { label: "Exams", active: false },
-                      { label: "Study", active: false },
-                    ].map((f) => (
-                      <View
-                        key={f.label}
-                        style={{
-                          paddingHorizontal: 10,
-                          paddingVertical: 5,
-                          borderRadius: 999,
-                          backgroundColor: f.active ? "#4F46E5" : "#EEF2FF",
-                        }}
-                      >
-                        <Text
-                          variant="caption"
-                          style={{
-                            color: f.active ? "#FFFFFF" : "#4F46E5",
-                            fontFamily: "Inter_600SemiBold",
-                          }}
-                        >
-                          {f.label}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-
-                  {/* Mini Week Strip */}
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                      backgroundColor: "#FFFFFF",
-                      borderRadius: 14,
-                      padding: 10,
-                      borderWidth: 1,
-                      borderColor: "#E2E8F0",
-                      marginBottom: 14,
-                    }}
-                  >
-                    {[
-                      { d: "Mon", n: "9", active: false },
-                      { d: "Tue", n: "10", active: false },
-                      { d: "Wed", n: "11", active: true },
-                      { d: "Thu", n: "12", active: false },
-                      { d: "Fri", n: "13", active: false },
-                    ].map((day) => (
-                      <View
-                        key={day.d}
-                        style={{
-                          alignItems: "center",
-                          paddingHorizontal: 10,
-                          paddingVertical: 6,
-                          borderRadius: 10,
-                          backgroundColor: day.active ? "#4F46E5" : "transparent",
-                        }}
-                      >
-                        <Text
-                          variant="caption"
-                          style={{ color: day.active ? "#E0E7FF" : "#64748B" }}
-                        >
-                          {day.d}
-                        </Text>
-                        <Text
-                          variant="label"
-                          style={{
-                            color: day.active ? "#FFFFFF" : "#0F172A",
-                            fontFamily: "Inter_700Bold",
-                          }}
-                        >
-                          {day.n}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-
-                  {/* Multi-calendar cards */}
-                  {[
-                    {
-                      badge: "MAIN · CSC 300L",
-                      title: "CSC 301 · Operating Systems",
-                      meta: "08:00 – 10:00 · LT1, Faculty of Science",
-                      color: "#4F46E5",
-                    },
-                    {
-                      badge: "CARRY-OVER · 200L",
-                      title: "STA 211 · Probability II",
-                      meta: "10:00 – 12:00 · LT2, Physical Sciences",
-                      color: "#D97706",
-                    },
-                    {
-                      badge: "ELECTIVE · ECO 300L",
-                      title: "ECO 303 · Macroeconomic Theory",
-                      meta: "1:00 – 3:00 pm · Social Sciences Hall B",
-                      color: "#0D9488",
-                    },
-                    {
-                      badge: "EXAM · CBT",
-                      title: "CSC 301 Mid-Semester CBT",
-                      meta: "Sat 10:00 am · ICT CBT Centre Hall B",
-                      color: "#DC2626",
-                    },
-                  ].map((item) => (
-                    <View
-                      key={item.title}
-                      style={{
-                        backgroundColor: "#FFFFFF",
-                        borderRadius: 12,
-                        borderWidth: 1,
-                        borderColor: "#E2E8F0",
-                        borderLeftWidth: 4,
-                        borderLeftColor: item.color,
-                        padding: 11,
-                        marginBottom: 8,
-                      }}
-                    >
-                      <Text
-                        variant="caption"
-                        style={{
-                          color: item.color,
-                          fontFamily: "Inter_700Bold",
-                          fontSize: 10,
-                        }}
-                      >
-                        {item.badge}
-                      </Text>
-                      <Text
-                        variant="label"
-                        style={{ color: "#0F172A", fontFamily: "Inter_600SemiBold" }}
-                      >
-                        {item.title}
-                      </Text>
-                      <Text variant="caption" style={{ color: "#64748B" }}>
-                        {item.meta}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              ) : null}
-
-              {heroTab === "assignments" ? (
-                <View>
-                  <Text
-                    variant="title-section"
-                    style={{
-                      color: "#0F172A",
-                      fontFamily: "Inter_700Bold",
-                      fontSize: 20,
-                      marginBottom: 4,
-                    }}
-                  >
-                    Assignments & Polls
-                  </Text>
-                  <Text variant="caption" style={{ color: "#64748B", marginBottom: 14 }}>
-                    7:00 PM evening-before & 3-hour deadline alerts
-                  </Text>
-
-                  {[
-                    {
-                      course: "CSC 301",
-                      title: "Process Scheduling & Deadlock Lab Report",
-                      due: "Due Today · 5:00 pm",
-                      tag: "Solo · In progress",
-                      color: "#4F46E5",
-                    },
-                    {
-                      course: "CSC 305",
-                      title: "Hospital ER Relational Schema (Group 4)",
-                      due: "Due Tomorrow · 11:59 pm",
-                      tag: "Group Poll · 6/6 members",
-                      color: "#0D9488",
-                    },
-                    {
-                      course: "MTH 201",
-                      title: "Eigenvalues & Cayley-Hamilton Problem Set",
-                      due: "Completed · Ahead of deadline",
-                      tag: "Done ✓",
-                      color: "#16A34A",
-                    },
-                  ].map((asg) => (
-                    <View
-                      key={asg.title}
-                      style={{
-                        backgroundColor: "#FFFFFF",
-                        borderRadius: 14,
-                        borderWidth: 1,
-                        borderColor: "#E2E8F0",
-                        borderLeftWidth: 4,
-                        borderLeftColor: asg.color,
-                        padding: 13,
-                        marginBottom: 10,
-                      }}
-                    >
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          justifyContent: "space-between",
-                          marginBottom: 4,
-                        }}
-                      >
-                        <Text
-                          variant="label-sm"
-                          style={{ color: asg.color, fontFamily: "Inter_700Bold" }}
-                        >
-                          {asg.course}
-                        </Text>
-                        <Text
-                          variant="caption"
-                          style={{ color: "#475569", fontFamily: "Inter_600SemiBold" }}
-                        >
-                          {asg.tag}
-                        </Text>
-                      </View>
-                      <Text
-                        variant="label"
-                        style={{
-                          color: "#0F172A",
-                          fontFamily: "Inter_600SemiBold",
-                          marginBottom: 3,
-                        }}
-                      >
-                        {asg.title}
-                      </Text>
-                      <Text variant="caption" style={{ color: "#64748B" }}>
-                        {asg.due}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              ) : null}
-
-              {heroTab === "attendance" ? (
-                <View>
-                  <Text
-                    variant="title-section"
-                    style={{
-                      color: "#0F172A",
-                      fontFamily: "Inter_700Bold",
-                      fontSize: 20,
-                      marginBottom: 4,
-                    }}
-                  >
-                    Attendance & Reports
-                  </Text>
-                  <Text variant="caption" style={{ color: "#64748B", marginBottom: 14 }}>
-                    75% university exam eligibility tracker
-                  </Text>
-
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      columnGap: 10,
-                      marginBottom: 14,
-                    }}
-                  >
-                    <View
-                      style={{
-                        flex: 1,
-                        backgroundColor: "#FFFFFF",
-                        borderRadius: 14,
-                        borderWidth: 1,
-                        borderColor: "#E2E8F0",
-                        padding: 12,
-                      }}
-                    >
-                      <Text variant="caption" style={{ color: "#64748B" }}>
-                        Overall Attendance
-                      </Text>
-                      <Text
-                        variant="display"
-                        style={{
-                          color: "#16A34A",
-                          fontSize: 28,
-                          lineHeight: 34,
-                          fontFamily: "Inter_700Bold",
-                        }}
-                      >
-                        94%
-                      </Text>
-                      <Text variant="caption" style={{ color: "#16A34A" }}>
-                        +19% above 75% target
-                      </Text>
-                    </View>
-                    <View
-                      style={{
-                        flex: 1,
-                        backgroundColor: "#FFFFFF",
-                        borderRadius: 14,
-                        borderWidth: 1,
-                        borderColor: "#E2E8F0",
-                        padding: 12,
-                      }}
-                    >
-                      <Text variant="caption" style={{ color: "#64748B" }}>
-                        Study Logged
-                      </Text>
-                      <Text
-                        variant="display"
-                        style={{
-                          color: "#4F46E5",
-                          fontSize: 28,
-                          lineHeight: 34,
-                          fontFamily: "Inter_700Bold",
-                        }}
-                      >
-                        24 h
-                      </Text>
-                      <Text variant="caption" style={{ color: "#64748B" }}>
-                        Across 4 courses
-                      </Text>
-                    </View>
-                  </View>
-
-                  {[
-                    { code: "CSC 301 · Operating Systems", pct: "100%", color: "#4F46E5" },
-                    { code: "CSC 305 · Database Systems", pct: "92%", color: "#0D9488" },
-                    { code: "MTH 201 · Linear Algebra", pct: "88%", color: "#EA580C" },
-                    { code: "GST 311 · Entrepreneurship", pct: "95%", color: "#7C3AED" },
-                  ].map((c) => (
-                    <View
-                      key={c.code}
-                      style={{
-                        backgroundColor: "#FFFFFF",
-                        borderRadius: 12,
-                        borderWidth: 1,
-                        borderColor: "#E2E8F0",
-                        padding: 11,
-                        marginBottom: 8,
-                      }}
-                    >
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          justifyContent: "space-between",
-                          marginBottom: 6,
-                        }}
-                      >
-                        <Text
-                          variant="label-sm"
-                          style={{ color: "#0F172A", fontFamily: "Inter_600SemiBold" }}
-                        >
-                          {c.code}
-                        </Text>
-                        <Text
-                          variant="label-sm"
-                          style={{ color: c.color, fontFamily: "Inter_700Bold" }}
-                        >
-                          {c.pct}
-                        </Text>
-                      </View>
-                      <View
-                        style={{
-                          height: 6,
-                          borderRadius: 999,
-                          backgroundColor: "#E2E8F0",
-                          overflow: "hidden",
-                        }}
-                      >
-                        <View
-                          style={{
-                            width: c.pct as any,
-                            height: "100%",
-                            backgroundColor: c.color,
-                          }}
-                        />
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              ) : null}
-            </View>
-          </View>
-        </View>
-      </View>
-
-      {/* 3. BEFORE vs. WITH TT CONTRAST SECTION (STRUCTURED / NOTION CALENDAR PHILOSOPHY) */}
-      <View
-        style={{
-          backgroundColor: "#0D1322",
-          borderTopWidth: 1,
-          borderBottomWidth: 1,
-          borderColor: "rgba(255, 255, 255, 0.07)",
-          paddingVertical: isDesktop ? 72 : 48,
-        }}
-      >
-        <View
-          style={{
-            maxWidth: 1200,
-            width: "100%",
-            alignSelf: "center",
-            paddingHorizontal: isDesktop ? 32 : 18,
-          }}
-        >
-          <View style={{ alignItems: "center", marginBottom: 40 }}>
-            <Text
-              variant="label-sm"
-              style={{
-                color: "#818CF8",
-                fontFamily: "Inter_700Bold",
-                letterSpacing: 1,
-                marginBottom: 8,
-              }}
-            >
-              FROM WHATSAPP CHAOS TO CALM CLARITY
-            </Text>
-            <Text
-              variant="title-page"
-              style={{
-                color: "#FFFFFF",
-                fontSize: isDesktop ? 36 : 26,
-                lineHeight: isDesktop ? 44 : 32,
-                fontFamily: "Inter_700Bold",
-                textAlign: "center",
-              }}
-            >
-              Why university students are switching to TT
-            </Text>
-          </View>
-
-          <View
-            style={{
-              flexDirection: isDesktop ? "row" : "column",
-              columnGap: 24,
-              rowGap: 20,
-            }}
-          >
-            {/* Card A: The Old Way */}
-            <View
-              style={{
-                flex: 1,
-                backgroundColor: "rgba(239, 68, 68, 0.06)",
-                borderRadius: 22,
-                borderWidth: 1,
-                borderColor: "rgba(239, 68, 68, 0.24)",
-                padding: 24,
-              }}
-            >
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  columnGap: 10,
-                  marginBottom: 18,
-                }}
-              >
-                <AlertCircle size={22} color="#F87171" strokeWidth={2.2} />
-                <Text
-                  variant="title-card"
-                  style={{ color: "#FCA5A5", fontFamily: "Inter_700Bold", fontSize: 18 }}
-                >
-                  Without TT: Semester Stress
-                </Text>
-              </View>
-
-              {[
-                "Scrolling through 400+ unread WhatsApp messages just to find a blurry PDF of the department timetable.",
-                "Walking all the way to LT1 at 8:00 AM only to find out the lecture moved to 500LT or was cancelled.",
-                "Forgetting carry-over or elective lectures from other departments because they live on separate sheets.",
-                "Guessing whether your attendance is above the 75% exam eligibility requirement until exam week.",
-              ].map((point) => (
-                <View
-                  key={point}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "flex-start",
-                    columnGap: 10,
-                    marginBottom: 14,
-                  }}
-                >
-                  <Text style={{ color: "#F87171", fontSize: 16, lineHeight: 22 }}>✕</Text>
-                  <Text variant="body" style={{ color: "#CBD5E1", flex: 1, lineHeight: 22 }}>
-                    {point}
-                  </Text>
-                </View>
-              ))}
-            </View>
-
-            {/* Card B: With TT */}
-            <View
-              style={{
-                flex: 1,
-                backgroundColor: "rgba(79, 70, 229, 0.12)",
-                borderRadius: 22,
-                borderWidth: 1,
-                borderColor: "rgba(129, 140, 248, 0.4)",
-                padding: 24,
-              }}
-            >
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  columnGap: 10,
-                  marginBottom: 18,
-                }}
-              >
-                <CheckCircle2 size={22} color="#34D399" strokeWidth={2.2} />
-                <Text
-                  variant="title-card"
-                  style={{ color: "#FFFFFF", fontFamily: "Inter_700Bold", fontSize: 18 }}
-                >
-                  With TT: Calm, Automatic Control
-                </Text>
-              </View>
-
-              {[
-                "Your Course Rep sets up the timetable once and shares a 6-character code (like CSC3X9). Everyone joins in 2 taps.",
-                "When a lecturer moves or cancels a class, your rep broadcasts the update and every classmate gets an instant alert.",
-                "Combine your Main Class, Carry-Over Courses, and Electives into one unified 4-in-1 Multi-Calendar.",
-                "1-tap post-class check-ins track your exact attendance percentage per course against your 75% target.",
-              ].map((point) => (
-                <View
-                  key={point}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "flex-start",
-                    columnGap: 10,
-                    marginBottom: 14,
-                  }}
-                >
-                  <Check size={18} color="#34D399" strokeWidth={2.5} style={{ marginTop: 2 }} />
-                  <Text variant="body" style={{ color: "#F8FAFC", flex: 1, lineHeight: 22 }}>
-                    {point}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        </View>
-      </View>
-
-      {/* 4. BENTO GRID FEATURE SHOWCASE */}
-      <View
-        style={{
-          maxWidth: 1200,
-          width: "100%",
-          alignSelf: "center",
-          paddingHorizontal: isDesktop ? 32 : 18,
-          paddingVertical: isDesktop ? 80 : 52,
-        }}
-      >
-        <View style={{ alignItems: "center", marginBottom: 44 }}>
+          {/* Active Feature Caption */}
           <Text
-            variant="label-sm"
             style={{
-              color: "#818CF8",
-              fontFamily: "Inter_700Bold",
-              letterSpacing: 1,
-              marginBottom: 8,
-            }}
-          >
-            DESIGNED FOR STUDENTS & COURSE REPS
-          </Text>
-          <Text
-            variant="title-page"
-            style={{
-              color: "#FFFFFF",
-              fontSize: isDesktop ? 38 : 28,
-              lineHeight: isDesktop ? 46 : 34,
-              fontFamily: "Inter_700Bold",
+              marginTop: 16,
+              color: "#475569",
+              fontSize: 15,
+              lineHeight: 22,
+              fontFamily: "Inter_400Regular",
               textAlign: "center",
               maxWidth: 680,
             }}
           >
-            Everything you need from first lecture to final exams
-          </Text>
-        </View>
-
-        {/* Bento Row 1 */}
-        <View
-          style={{
-            flexDirection: isDesktop ? "row" : "column",
-            columnGap: 24,
-            rowGap: 24,
-            marginBottom: 24,
-          }}
-        >
-          {/* Bento Card 1: One-Code Class Sharing */}
-          <View
-            style={{
-              flex: 1.15,
-              backgroundColor: "#131C31",
-              borderRadius: 24,
-              borderWidth: 1,
-              borderColor: "rgba(255, 255, 255, 0.1)",
-              padding: 28,
-              justifyContent: "space-between",
-            }}
-          >
-            <View>
-              <View
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 12,
-                  backgroundColor: "rgba(99, 102, 241, 0.2)",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginBottom: 16,
-                }}
-              >
-                <Users size={22} color="#818CF8" strokeWidth={2.2} />
-              </View>
-              <Text
-                variant="title-section"
-                style={{
-                  color: "#FFFFFF",
-                  fontFamily: "Inter_700Bold",
-                  fontSize: 22,
-                  marginBottom: 10,
-                }}
-              >
-                One Code Sets Up the Entire Class
-              </Text>
-              <Text variant="body" style={{ color: "#94A3B8", lineHeight: 23, marginBottom: 22 }}>
-                Course reps publish the semester schedule once and share a 6-character code or
-                WhatsApp QR card. Classmates subscribe inMain, Carry-over, or Elective mode and
-                receive live room changes automatically.
-              </Text>
-            </View>
-
-            <View
-              style={{
-                flexDirection: isTablet ? "row" : "column",
-                alignItems: "center",
-                justifyContent: "space-between",
-                backgroundColor: "#1E1B4B",
-                borderRadius: 18,
-                padding: 18,
-                borderWidth: 1,
-                borderColor: "rgba(129, 140, 248, 0.35)",
-                rowGap: 14,
-              }}
-            >
-              <View style={{ flex: 1 }}>
-                <Text
-                  variant="caption"
-                  style={{ color: "#A5B4FC", fontFamily: "Inter_700Bold", marginBottom: 4 }}
-                >
-                  SAMPLE SHARED CLASS
-                </Text>
-                <Text
-                  variant="title-card"
-                  style={{ color: "#FFFFFF", fontFamily: "Inter_700Bold", fontSize: 18 }}
-                >
-                  CSC 300L · UNIBEN
-                </Text>
-                <Text variant="caption" style={{ color: "#C7D2FE", marginBottom: 12 }}>
-                  Share Code: CSC3X9 · 128 classmates following
-                </Text>
-                <Pressable
-                  onPress={() => handlePreviewCode("CSC3X9")}
-                  accessibilityRole="button"
-                  style={{
-                    alignSelf: "flex-start",
-                    paddingHorizontal: 14,
-                    paddingVertical: 8,
-                    borderRadius: 10,
-                    backgroundColor: "#4F46E5",
-                  }}
-                >
-                  <Text
-                    variant="label-sm"
-                    style={{ color: "#FFFFFF", fontFamily: "Inter_700Bold" }}
-                  >
-                    Open CSC3X9 Preview →
-                  </Text>
-                </Pressable>
-              </View>
-
-              <View
-                style={{
-                  padding: 10,
-                  borderRadius: 14,
-                  backgroundColor: "#FFFFFF",
-                }}
-              >
-                <QrMatrix size={96} />
-              </View>
-            </View>
-          </View>
-
-          {/* Bento Card 2: 4-in-1 Multi-Calendar */}
-          <View
-            style={{
-              flex: 0.85,
-              backgroundColor: "#131C31",
-              borderRadius: 24,
-              borderWidth: 1,
-              borderColor: "rgba(255, 255, 255, 0.1)",
-              padding: 28,
-              justifyContent: "space-between",
-            }}
-          >
-            <View>
-              <View
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 12,
-                  backgroundColor: "rgba(13, 148, 136, 0.2)",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginBottom: 16,
-                }}
-              >
-                <Layers size={22} color="#2DD4BF" strokeWidth={2.2} />
-              </View>
-              <Text
-                variant="title-section"
-                style={{
-                  color: "#FFFFFF",
-                  fontFamily: "Inter_700Bold",
-                  fontSize: 22,
-                  marginBottom: 10,
-                }}
-              >
-                4-in-1 Multi-Calendar
-              </Text>
-              <Text variant="body" style={{ color: "#94A3B8", lineHeight: 23, marginBottom: 20 }}>
-                Keep Lectures, Assignments, Semester Exams, and Personal Reading/Campus Life in one
-                harmonious view—with 100% parity between Card List and Calendar Grid.
-              </Text>
-            </View>
-
-            <View style={{ rowGap: 10 }}>
-              {[
-                { label: "Classes & Labs", desc: "Main, Carry-over & Electives", color: "#4F46E5" },
-                {
-                  label: "Assignments & Polls",
-                  desc: "Solo & group project deadlines",
-                  color: "#EA580C",
-                },
-                {
-                  label: "Semester Exams",
-                  desc: "Written, CBT & Practical venues",
-                  color: "#DC2626",
-                },
-                {
-                  label: "Reading & Campus Life",
-                  desc: "Personal study, Gym, Fellowship",
-                  color: "#0D9488",
-                },
-              ].map((cal) => (
-                <View
-                  key={cal.label}
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    backgroundColor: "#090D16",
-                    borderRadius: 12,
-                    paddingHorizontal: 14,
-                    paddingVertical: 11,
-                    borderLeftWidth: 4,
-                    borderLeftColor: cal.color,
-                  }}
-                >
-                  <Text
-                    variant="label"
-                    style={{ color: "#F8FAFC", fontFamily: "Inter_600SemiBold" }}
-                  >
-                    {cal.label}
-                  </Text>
-                  <Text variant="caption" style={{ color: "#94A3B8" }}>
-                    {cal.desc}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        </View>
-
-        {/* Bento Row 2 */}
-        <View
-          style={{
-            flexDirection: isDesktop ? "row" : "column",
-            columnGap: 24,
-            rowGap: 24,
-          }}
-        >
-          {/* Bento Card 3: Offline Wall-Clock Alarms */}
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: "#131C31",
-              borderRadius: 24,
-              borderWidth: 1,
-              borderColor: "rgba(255, 255, 255, 0.1)",
-              padding: 28,
-            }}
-          >
-            <View
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 12,
-                backgroundColor: "rgba(234, 88, 12, 0.2)",
-                alignItems: "center",
-                justifyContent: "center",
-                marginBottom: 16,
-              }}
-            >
-              <Bell size={22} color="#FB923C" strokeWidth={2.2} />
-            </View>
-            <Text
-              variant="title-section"
-              style={{
-                color: "#FFFFFF",
-                fontFamily: "Inter_700Bold",
-                fontSize: 22,
-                marginBottom: 10,
-              }}
-            >
-              Offline-First Wall-Clock Alarms
-            </Text>
-            <Text variant="body" style={{ color: "#94A3B8", lineHeight: 23 }}>
-              Campus network down? Your entire schedule lives in on-device SQLite and fires exact
-              local alarms: 7:00 AM daily morning summaries, 30-min or 1-hr pre-class reminders, and
-              7:00 PM evening-before assignment alerts.
-            </Text>
-          </View>
-
-          {/* Bento Card 4: 75% Attendance & Exam Eligibility */}
-          <View
-            style={{
-              flex: 1,
-              backgroundColor: "#131C31",
-              borderRadius: 24,
-              borderWidth: 1,
-              borderColor: "rgba(255, 255, 255, 0.1)",
-              padding: 28,
-            }}
-          >
-            <View
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 12,
-                backgroundColor: "rgba(16, 185, 129, 0.2)",
-                alignItems: "center",
-                justifyContent: "center",
-                marginBottom: 16,
-              }}
-            >
-              <BarChart2 size={22} color="#34D399" strokeWidth={2.2} />
-            </View>
-            <Text
-              variant="title-section"
-              style={{
-                color: "#FFFFFF",
-                fontFamily: "Inter_700Bold",
-                fontSize: 22,
-                marginBottom: 10,
-              }}
-            >
-              Stay Above Your 75% Attendance Target
-            </Text>
-            <Text variant="body" style={{ color: "#94A3B8", lineHeight: 23 }}>
-              Ten minutes after each lecture ends, TT prompts a gentle 1-tap check-in
-              (&quot;Attended&quot; or &quot;Missed&quot;). Track your live attendance percentage
-              per course so you never get barred from semester exams.
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      {/* 5. BOTTOM CALL TO ACTION BANNER */}
-      <View
-        style={{
-          maxWidth: 1200,
-          width: "100%",
-          alignSelf: "center",
-          paddingHorizontal: isDesktop ? 32 : 18,
-          marginBottom: 64,
-        }}
-      >
-        <View
-          style={{
-            backgroundColor: "#1E1B4B",
-            borderRadius: 28,
-            borderWidth: 1,
-            borderColor: "rgba(129, 140, 248, 0.4)",
-            paddingVertical: isDesktop ? 52 : 36,
-            paddingHorizontal: isDesktop ? 48 : 24,
-            alignItems: "center",
-          }}
-        >
-          <Text
-            variant="title-page"
-            style={{
-              color: "#FFFFFF",
-              fontSize: isDesktop ? 36 : 26,
-              lineHeight: isDesktop ? 44 : 32,
-              fontFamily: "Inter_700Bold",
-              textAlign: "center",
-              marginBottom: 12,
-            }}
-          >
-            Ready for a calmer semester?
-          </Text>
-          <Text
-            variant="body-lg"
-            style={{
-              color: "#C7D2FE",
-              textAlign: "center",
-              maxWidth: 580,
-              marginBottom: 28,
-            }}
-          >
-            Download TT on the App Store, join your class with a 6-character code, or set up your
-            department&apos;s shared timetable in minutes.
+            {currentHero.caption}
           </Text>
 
+          {/* Giant 3-Screen Showcase Stage (Real 720x1600 TT Screenshots) */}
           <View
             style={{
-              flexDirection: isTablet ? "row" : "column",
+              marginTop: 28,
+              width: "100%",
+              paddingVertical: isDesktop ? 36 : 24,
+              paddingHorizontal: isDesktop ? 32 : 16,
+              borderRadius: 28,
+              backgroundColor: "#F8FAFC",
+              borderWidth: 1,
+              borderColor: "#E2E8F0",
               alignItems: "center",
-              gap: 14,
             }}
           >
-            <Pressable
-              onPress={() => void Linking.openURL(APP_STORE_SEARCH_URL)}
-              accessibilityRole="button"
+            <View
               style={{
-                height: 52,
-                paddingHorizontal: 24,
-                borderRadius: 12,
-                backgroundColor: "#FFFFFF",
-                flexDirection: "row",
-                alignItems: "center",
+                flexDirection: isDesktop ? "row" : "column",
+                alignItems: isDesktop ? "flex-end" : "center",
                 justifyContent: "center",
-                columnGap: 8,
+                gap: isDesktop ? 28 : 32,
               }}
             >
-              <Text style={{ fontSize: 18, color: "#0F172A" }}></Text>
-              <Text variant="label-lg" style={{ color: "#0F172A", fontFamily: "Inter_700Bold" }}>
-                Download on App Store
-              </Text>
-            </Pressable>
+              {/* Left Companion Screen */}
+              {isDesktop ? (
+                <PhoneScreenshotFrame
+                  source={currentHero.left.source}
+                  width={heroSideWidth}
+                  tag={currentHero.left.tag}
+                  title={currentHero.left.title}
+                  accentColor={currentHero.tintText}
+                  accentBg={currentHero.tintBg}
+                />
+              ) : null}
 
-            <Pressable
-              onPress={() => router.push("/setup/welcome?mode=signup" as any)}
-              accessibilityRole="button"
-              style={{
-                height: 52,
-                paddingHorizontal: 24,
-                borderRadius: 12,
-                backgroundColor: "#4F46E5",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Text variant="label-lg" style={{ color: "#FFFFFF", fontFamily: "Inter_700Bold" }}>
-                Create Student Account
-              </Text>
-            </Pressable>
+              {/* Center Primary Screen */}
+              <PhoneScreenshotFrame
+                source={currentHero.center.source}
+                width={heroCenterWidth}
+                tag={currentHero.center.tag}
+                title={currentHero.center.title}
+                elevated
+                accentColor={currentHero.tintText}
+                accentBg={currentHero.tintBg}
+              />
+
+              {/* Right Companion Screen */}
+              {isDesktop ? (
+                <PhoneScreenshotFrame
+                  source={currentHero.right.source}
+                  width={heroSideWidth}
+                  tag={currentHero.right.tag}
+                  title={currentHero.right.title}
+                  accentColor={currentHero.tintText}
+                  accentBg={currentHero.tintBg}
+                />
+              ) : null}
+
+              {/* On Mobile/Tablet, show the 2 companion screens side-by-side below the main screen */}
+              {!isDesktop ? (
+                <View
+                  style={{
+                    flexDirection: isTablet ? "row" : "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 24,
+                  }}
+                >
+                  <PhoneScreenshotFrame
+                    source={currentHero.left.source}
+                    width={isTablet ? 225 : heroCenterWidth}
+                    tag={currentHero.left.tag}
+                    title={currentHero.left.title}
+                    accentColor={currentHero.tintText}
+                    accentBg={currentHero.tintBg}
+                  />
+                  <PhoneScreenshotFrame
+                    source={currentHero.right.source}
+                    width={isTablet ? 225 : heroCenterWidth}
+                    tag={currentHero.right.tag}
+                    title={currentHero.right.title}
+                    accentColor={currentHero.tintText}
+                    accentBg={currentHero.tintBg}
+                  />
+                </View>
+              ) : null}
+            </View>
           </View>
-        </View>
-      </View>
 
-      {/* 6. FOOTER (GOOGLE OAUTH HOMEPAGE VERIFICATION & LEGAL LINKS) */}
-      <View
-        style={{
-          borderTopWidth: 1,
-          borderTopColor: "rgba(255, 255, 255, 0.08)",
-          backgroundColor: "#060911",
-          paddingVertical: 36,
-        }}
-      >
-        <View
-          style={{
-            maxWidth: 1200,
-            width: "100%",
-            alignSelf: "center",
-            paddingHorizontal: isDesktop ? 32 : 18,
-            flexDirection: isTablet ? "row" : "column",
-            alignItems: isTablet ? "center" : "flex-start",
-            justifyContent: "space-between",
-            rowGap: 20,
-          }}
-        >
-          <View>
-            <Text
-              variant="label"
-              style={{ color: "#F8FAFC", fontFamily: "Inter_700Bold", marginBottom: 4 }}
-            >
-              TT: Student Timetable (studenttimetable.app)
-            </Text>
-            <Text variant="caption" style={{ color: "#64748B" }}>
-              © 2026 Philemon Okpokpa · Built for university students and course reps.
-            </Text>
-          </View>
-
+          {/* Quick Trust & Capability Strip */}
           <View
             style={{
+              marginTop: 28,
               flexDirection: "row",
               flexWrap: "wrap",
               alignItems: "center",
-              gap: 20,
+              justifyContent: "center",
+              gap: isDesktop ? 32 : 16,
             }}
           >
-            <Pressable onPress={() => router.push("/privacy" as any)} accessibilityRole="link">
+            {[
+              "No account needed to preview a class link",
+              "Works offline on campus with local SQLite",
+              "Supports main class, carry-overs & electives",
+              "Light and dark mode built in",
+            ].map((point) => (
+              <View key={point} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <CheckCircle2 size={16} color="#16A34A" />
+                <Text
+                  style={{
+                    color: "#334155",
+                    fontSize: 14,
+                    lineHeight: 20,
+                    fontFamily: "Inter_500Medium",
+                  }}
+                >
+                  {point}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      </View>
+
+      {/* ===================================================================== */}
+      {/* 3. CHAPTER 1: COURSE REP SHARING & LIVE VENUE BROADCASTS              */}
+      {/* ===================================================================== */}
+      <View
+        style={{
+          width: "100%",
+          maxWidth: 1200,
+          alignSelf: "center",
+          paddingHorizontal: isDesktop ? 32 : 20,
+          paddingVertical: isDesktop ? 88 : 56,
+        }}
+      >
+        <View style={{ maxWidth: 740 }}>
+          <View
+            style={{
+              alignSelf: "flex-start",
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 8,
+              paddingHorizontal: 12,
+              paddingVertical: 5,
+              borderRadius: 999,
+              backgroundColor: "#EEF2FF",
+              marginBottom: 14,
+            }}
+          >
+            <Users size={14} color="#4F46E5" />
+            <Text
+              style={{
+                color: "#4F46E5",
+                fontSize: 12,
+                lineHeight: 16,
+                fontFamily: "Inter_600SemiBold",
+              }}
+            >
+              Shared classes · Course rep broadcasts
+            </Text>
+          </View>
+
+          <Text
+            style={{
+              color: "#0F172A",
+              fontSize: isDesktop ? 40 : 30,
+              lineHeight: isDesktop ? 48 : 38,
+              fontFamily: "Inter_700Bold",
+              letterSpacing: -0.6,
+            }}
+          >
+            One link from your course rep. Everyone is on the same timetable.
+          </Text>
+
+          <Text
+            style={{
+              marginTop: 14,
+              color: "#334155",
+              fontSize: isDesktop ? 18 : 16,
+              lineHeight: isDesktop ? 28 : 24,
+              fontFamily: "Inter_400Regular",
+            }}
+          >
+            Stop digging through 300 WhatsApp messages for a blurred PDF timetable. When your course
+            rep moves CSC 301 from LT1 to LT2 or cancels a morning lecture, every follower gets an
+            instant change notice and an updated reminder.
+          </Text>
+        </View>
+
+        {/* 3-Up Screenshot Story Card Grid */}
+        <View
+          style={{
+            marginTop: 40,
+            flexDirection: isDesktop ? "row" : "column",
+            alignItems: "stretch",
+            justifyContent: "space-between",
+            gap: 24,
+          }}
+        >
+          {/* Step 1 Card */}
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: "#FFFFFF",
+              borderRadius: 24,
+              padding: 24,
+              borderWidth: 1,
+              borderColor: "#E2E8F0",
+              alignItems: "center",
+            }}
+          >
+            <PhoneScreenshotFrame
+              source={screenQrCard}
+              width={chapterThreeUpWidth}
+              tag="1 · Share in one tap"
+              title="Post QR card to WhatsApp status or projector"
+              subtitle="Classmates scan the QR card or enter the 6-character share code CSC3X9."
+            />
+          </View>
+
+          {/* Step 2 Card */}
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: "#FFFFFF",
+              borderRadius: 24,
+              padding: 24,
+              borderWidth: 1,
+              borderColor: "#E2E8F0",
+              alignItems: "center",
+            }}
+          >
+            <PhoneScreenshotFrame
+              source={screenMoveClass}
+              width={chapterThreeUpWidth}
+              tag="2 · Rep moves one class"
+              title="Change Fri 6 Nov only without breaking the week"
+              subtitle="Reps move a single lecture to LT2 or cancel it in seconds. All 128 followers are notified."
+              accentColor="#B45309"
+              accentBg="#FEF3C7"
+            />
+          </View>
+
+          {/* Step 3 Card */}
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: "#FFFFFF",
+              borderRadius: 24,
+              padding: 24,
+              borderWidth: 1,
+              borderColor: "#E2E8F0",
+              alignItems: "center",
+            }}
+          >
+            <PhoneScreenshotFrame
+              source={screenClassCancelled}
+              width={chapterThreeUpWidth}
+              tag="3 · Followers see it right away"
+              title="Cancelled & moved lectures stand out clearly"
+              subtitle="Earlier reminders are corrected automatically so nobody walks to an empty hall."
+              accentColor="#166534"
+              accentBg="#DCFCE7"
+            />
+          </View>
+        </View>
+      </View>
+
+      {/* ===================================================================== */}
+      {/* 4. CHAPTER 2: 4-IN-1 STUDENT TIMETABLE (BENTO SCREENSHOT GRID)        */}
+      {/* ===================================================================== */}
+      <View
+        style={{
+          width: "100%",
+          backgroundColor: "#FFFFFF",
+          borderTopWidth: 1,
+          borderBottomWidth: 1,
+          borderColor: "#E2E8F0",
+        }}
+      >
+        <View
+          style={{
+            width: "100%",
+            maxWidth: 1200,
+            alignSelf: "center",
+            paddingHorizontal: isDesktop ? 32 : 20,
+            paddingVertical: isDesktop ? 88 : 56,
+          }}
+        >
+          <View style={{ maxWidth: 760 }}>
+            <View
+              style={{
+                alignSelf: "flex-start",
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                paddingHorizontal: 12,
+                paddingVertical: 5,
+                borderRadius: 999,
+                backgroundColor: "#EDE9FE",
+                marginBottom: 14,
+              }}
+            >
+              <Layers size={14} color="#5B21B6" />
               <Text
-                variant="label"
                 style={{
-                  color: "#818CF8",
+                  color: "#5B21B6",
+                  fontSize: 12,
+                  lineHeight: 16,
                   fontFamily: "Inter_600SemiBold",
-                  textDecorationLine: "underline",
                 }}
               >
-                Privacy Policy & Account Deletion
+                Multi-calendar student life
               </Text>
-            </Pressable>
+            </View>
 
-            <Pressable onPress={() => router.push("/join/CSC3X9" as any)} accessibilityRole="link">
-              <Text variant="label" style={{ color: "#94A3B8" }}>
-                Sample Class (CSC3X9)
+            <Text
+              style={{
+                color: "#0F172A",
+                fontSize: isDesktop ? 40 : 30,
+                lineHeight: isDesktop ? 48 : 38,
+                fontFamily: "Inter_700Bold",
+                letterSpacing: -0.6,
+              }}
+            >
+              Lectures, CBT exams, personal reading, and carry-overs in one calm view.
+            </Text>
+
+            <Text
+              style={{
+                marginTop: 14,
+                color: "#334155",
+                fontSize: isDesktop ? 18 : 16,
+                lineHeight: isDesktop ? 28 : 24,
+                fontFamily: "Inter_400Regular",
+              }}
+            >
+              University life is more than a static weekly lecture grid. TT brings your department
+              timetable, carry-over courses from other levels, exam seat numbers, and personal study
+              blocks together.
+            </Text>
+          </View>
+
+          {/* 2x2 Notion-Style Feature Bento Grid with Real Screenshots */}
+          <View
+            style={{
+              marginTop: 40,
+              flexDirection: isDesktop ? "row" : "column",
+              flexWrap: "wrap",
+              gap: 24,
+            }}
+          >
+            {/* Bento Card 1: Classes & Calendar */}
+            <View
+              style={{
+                flex: 1,
+                minWidth: isDesktop ? 520 : "100%",
+                backgroundColor: "#F8FAFC",
+                borderRadius: 24,
+                padding: isDesktop ? 32 : 24,
+                borderWidth: 1,
+                borderColor: "#E2E8F0",
+                flexDirection: isTablet ? "row" : "column",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 24,
+              }}
+            >
+              <View style={{ flex: 1 }}>
+                <View
+                  style={{
+                    alignSelf: "flex-start",
+                    paddingHorizontal: 10,
+                    paddingVertical: 4,
+                    borderRadius: 6,
+                    backgroundColor: "#EEF2FF",
+                    marginBottom: 12,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: "#4F46E5",
+                      fontSize: 12,
+                      lineHeight: 16,
+                      fontFamily: "Inter_600SemiBold",
+                    }}
+                  >
+                    Classes · List, Day, Week & Month
+                  </Text>
+                </View>
+                <Text
+                  style={{
+                    color: "#0F172A",
+                    fontSize: 22,
+                    lineHeight: 30,
+                    fontFamily: "Inter_700Bold",
+                  }}
+                >
+                  See your whole semester at a glance
+                </Text>
+                <Text
+                  style={{
+                    marginTop: 10,
+                    color: "#475569",
+                    fontSize: 15,
+                    lineHeight: 23,
+                    fontFamily: "Inter_400Regular",
+                  }}
+                >
+                  Flip between a clean daily card list and a full month grid. Busy-day dots and 4px
+                  course colour stripes make every lecture easy to scan in sunlight.
+                </Text>
+              </View>
+              <PhoneScreenshotFrame source={screenClassesMonth} width={bentoPhoneWidth} />
+            </View>
+
+            {/* Bento Card 2: Exams */}
+            <View
+              style={{
+                flex: 1,
+                minWidth: isDesktop ? 520 : "100%",
+                backgroundColor: "#F8FAFC",
+                borderRadius: 24,
+                padding: isDesktop ? 32 : 24,
+                borderWidth: 1,
+                borderColor: "#E2E8F0",
+                flexDirection: isTablet ? "row" : "column",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 24,
+              }}
+            >
+              <View style={{ flex: 1 }}>
+                <View
+                  style={{
+                    alignSelf: "flex-start",
+                    paddingHorizontal: 10,
+                    paddingVertical: 4,
+                    borderRadius: 6,
+                    backgroundColor: "#EDE9FE",
+                    marginBottom: 12,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: "#5B21B6",
+                      fontSize: 12,
+                      lineHeight: 16,
+                      fontFamily: "Inter_600SemiBold",
+                    }}
+                  >
+                    Exams · Written & CBT
+                  </Text>
+                </View>
+                <Text
+                  style={{
+                    color: "#0F172A",
+                    fontSize: 22,
+                    lineHeight: 30,
+                    fontFamily: "Inter_700Bold",
+                  }}
+                >
+                  Count down to every paper with seat numbers
+                </Text>
+                <Text
+                  style={{
+                    marginTop: 10,
+                    color: "#475569",
+                    fontSize: 15,
+                    lineHeight: 23,
+                    fontFamily: "Inter_400Regular",
+                  }}
+                >
+                  See how many days remain until your first paper, track moved CBT times, and store
+                  your private seat number where only you can see it.
+                </Text>
+              </View>
+              <PhoneScreenshotFrame source={screenExams} width={bentoPhoneWidth} />
+            </View>
+
+            {/* Bento Card 3: Reading Timetable */}
+            <View
+              style={{
+                flex: 1,
+                minWidth: isDesktop ? 520 : "100%",
+                backgroundColor: "#F8FAFC",
+                borderRadius: 24,
+                padding: isDesktop ? 32 : 24,
+                borderWidth: 1,
+                borderColor: "#E2E8F0",
+                flexDirection: isTablet ? "row" : "column",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 24,
+              }}
+            >
+              <View style={{ flex: 1 }}>
+                <View
+                  style={{
+                    alignSelf: "flex-start",
+                    paddingHorizontal: 10,
+                    paddingVertical: 4,
+                    borderRadius: 6,
+                    backgroundColor: "#CCFBF1",
+                    marginBottom: 12,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: "#0F766E",
+                      fontSize: 12,
+                      lineHeight: 16,
+                      fontFamily: "Inter_600SemiBold",
+                    }}
+                  >
+                    Reading · Personal study blocks
+                  </Text>
+                </View>
+                <Text
+                  style={{
+                    color: "#0F172A",
+                    fontSize: 22,
+                    lineHeight: 30,
+                    fontFamily: "Inter_700Bold",
+                  }}
+                >
+                  Build a personal reading habit that sticks
+                </Text>
+                <Text
+                  style={{
+                    marginTop: 10,
+                    color: "#475569",
+                    fontSize: 15,
+                    lineHeight: 23,
+                    fontFamily: "Inter_400Regular",
+                  }}
+                >
+                  Schedule quiet library or hostel study sessions around your lectures, check off
+                  past questions, and keep your weekly reading streak alive.
+                </Text>
+              </View>
+              <PhoneScreenshotFrame source={screenReading} width={bentoPhoneWidth} />
+            </View>
+
+            {/* Bento Card 4: Carry-over & Class Switcher */}
+            <View
+              style={{
+                flex: 1,
+                minWidth: isDesktop ? 520 : "100%",
+                backgroundColor: "#F8FAFC",
+                borderRadius: 24,
+                padding: isDesktop ? 32 : 24,
+                borderWidth: 1,
+                borderColor: "#E2E8F0",
+                flexDirection: isTablet ? "row" : "column",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 24,
+              }}
+            >
+              <View style={{ flex: 1 }}>
+                <View
+                  style={{
+                    alignSelf: "flex-start",
+                    paddingHorizontal: 10,
+                    paddingVertical: 4,
+                    borderRadius: 6,
+                    backgroundColor: "#FCE7F3",
+                    marginBottom: 12,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: "#9D174D",
+                      fontSize: 12,
+                      lineHeight: 16,
+                      fontFamily: "Inter_600SemiBold",
+                    }}
+                  >
+                    Class switcher · Carry-overs & electives
+                  </Text>
+                </View>
+                <Text
+                  style={{
+                    color: "#0F172A",
+                    fontSize: 22,
+                    lineHeight: 30,
+                    fontFamily: "Inter_700Bold",
+                  }}
+                >
+                  Follow carry-over courses from other levels
+                </Text>
+                <Text
+                  style={{
+                    marginTop: 10,
+                    color: "#475569",
+                    fontSize: 15,
+                    lineHeight: 23,
+                    fontFamily: "Inter_400Regular",
+                  }}
+                >
+                  Taking STA 211 with 200L while in 300L? Subscribe to just that course from their
+                  class link and TT warns you immediately if a lecture clashes.
+                </Text>
+              </View>
+              <PhoneScreenshotFrame source={screenClassSwitcher} width={bentoPhoneWidth} />
+            </View>
+          </View>
+        </View>
+      </View>
+
+      {/* ===================================================================== */}
+      {/* 5. CHAPTER 3: DARK MODE CONTRAST — REMINDERS, WIDGETS & OFFLINE       */}
+      {/* ===================================================================== */}
+      <View
+        style={{
+          width: "100%",
+          backgroundColor: "#0F172A",
+        }}
+      >
+        <View
+          style={{
+            width: "100%",
+            maxWidth: 1200,
+            alignSelf: "center",
+            paddingHorizontal: isDesktop ? 32 : 20,
+            paddingVertical: isDesktop ? 88 : 56,
+          }}
+        >
+          <View style={{ maxWidth: 740 }}>
+            <View
+              style={{
+                alignSelf: "flex-start",
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 8,
+                paddingHorizontal: 12,
+                paddingVertical: 5,
+                borderRadius: 999,
+                backgroundColor: "rgba(79, 70, 229, 0.25)",
+                borderWidth: 1,
+                borderColor: "rgba(129, 140, 248, 0.35)",
+                marginBottom: 14,
+              }}
+            >
+              <Bell size={14} color="#A5B4FC" />
+              <Text
+                style={{
+                  color: "#C7D2FE",
+                  fontSize: 12,
+                  lineHeight: 16,
+                  fontFamily: "Inter_600SemiBold",
+                }}
+              >
+                Wall-clock reminders · Offline-first · Home-screen widgets
               </Text>
-            </Pressable>
+            </View>
+
+            <Text
+              style={{
+                color: "#F8FAFC",
+                fontSize: isDesktop ? 40 : 30,
+                lineHeight: isDesktop ? 48 : 38,
+                fontFamily: "Inter_700Bold",
+                letterSpacing: -0.6,
+              }}
+            >
+              Reminders that tell you what and where—even when campus Wi-Fi drops.
+            </Text>
+
+            <Text
+              style={{
+                marginTop: 14,
+                color: "#CBD5E1",
+                fontSize: isDesktop ? 18 : 16,
+                lineHeight: isDesktop ? 28 : 24,
+                fontFamily: "Inter_400Regular",
+              }}
+            >
+              No vague &ldquo;You have a class coming up!&rdquo; popups. TT schedules local alarms
+              on your phone with the course code, minutes left, and lecture theatre—and updates them
+              the moment your rep moves or cancels a class.
+            </Text>
+          </View>
+
+          <View
+            style={{
+              marginTop: 40,
+              flexDirection: isDesktop ? "row" : "column",
+              alignItems: "stretch",
+              justifyContent: "space-between",
+              gap: 24,
+            }}
+          >
+            {/* Dark Card 1: Lock screen notifications */}
+            <View
+              style={{
+                flex: 1,
+                backgroundColor: "#1E293B",
+                borderRadius: 24,
+                padding: 24,
+                borderWidth: 1,
+                borderColor: "rgba(255, 255, 255, 0.1)",
+                alignItems: "center",
+              }}
+            >
+              <PhoneScreenshotFrame
+                source={screenLockNotifications}
+                width={chapterThreeUpWidth}
+                darkSurface
+                tag="Lock-screen notices"
+                title="Plain, specific alerts you can read at a glance"
+                subtitle="“CSC 301 in 30 min, LT1” · “MTH 301 moved to LT2, 10am” · “Cancelled: CSC 301 at 10am”."
+              />
+            </View>
+
+            {/* Dark Card 2: Home-screen widgets */}
+            <View
+              style={{
+                flex: 1,
+                backgroundColor: "#1E293B",
+                borderRadius: 24,
+                padding: 24,
+                borderWidth: 1,
+                borderColor: "rgba(255, 255, 255, 0.1)",
+                alignItems: "center",
+              }}
+            >
+              <PhoneScreenshotFrame
+                source={screenWidgets}
+                width={chapterThreeUpWidth}
+                darkSurface
+                tag="Home-screen widgets"
+                title="Next class and due work right on your home screen"
+                subtitle="Widgets read directly from your phone’s local database, so they work offline and update when a class moves."
+              />
+            </View>
+
+            {/* Dark Card 3: Offline mode */}
+            <View
+              style={{
+                flex: 1,
+                backgroundColor: "#1E293B",
+                borderRadius: 24,
+                padding: 24,
+                borderWidth: 1,
+                borderColor: "rgba(255, 255, 255, 0.1)",
+                alignItems: "center",
+              }}
+            >
+              <PhoneScreenshotFrame
+                source={screenTodayOffline}
+                width={chapterThreeUpWidth}
+                darkSurface
+                tag="100% offline ready"
+                title="Never blanks out when you have zero bars"
+                subtitle="Your timetable, check-ins, and changes are stored on-device and sync automatically when you reconnect."
+              />
+            </View>
+          </View>
+        </View>
+      </View>
+
+      {/* ===================================================================== */}
+      {/* 6. CHAPTER 4: 75% ATTENDANCE TARGET & GROUP ASSIGNMENT POLLS          */}
+      {/* ===================================================================== */}
+      <View
+        style={{
+          width: "100%",
+          maxWidth: 1200,
+          alignSelf: "center",
+          paddingHorizontal: isDesktop ? 32 : 20,
+          paddingVertical: isDesktop ? 88 : 56,
+        }}
+      >
+        <View style={{ maxWidth: 760 }}>
+          <View
+            style={{
+              alignSelf: "flex-start",
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 8,
+              paddingHorizontal: 12,
+              paddingVertical: 5,
+              borderRadius: 999,
+              backgroundColor: "#DCFCE7",
+              marginBottom: 14,
+            }}
+          >
+            <BarChart2 size={14} color="#166534" />
+            <Text
+              style={{
+                color: "#166534",
+                fontSize: 12,
+                lineHeight: 16,
+                fontFamily: "Inter_600SemiBold",
+              }}
+            >
+              75% attendance protection · Group work without chaos
+            </Text>
+          </View>
+
+          <Text
+            style={{
+              color: "#0F172A",
+              fontSize: isDesktop ? 40 : 30,
+              lineHeight: isDesktop ? 48 : 38,
+              fontFamily: "Inter_700Bold",
+              letterSpacing: -0.6,
+            }}
+          >
+            Protect your exam eligibility and sort out group projects in seconds.
+          </Text>
+
+          <Text
+            style={{
+              marginTop: 14,
+              color: "#334155",
+              fontSize: isDesktop ? 18 : 16,
+              lineHeight: isDesktop ? 28 : 24,
+              fontFamily: "Inter_400Regular",
+            }}
+          >
+            Most students only discover they are below 75% attendance when the exam eligibility list
+            is pasted on the department noticeboard. TT checks in after each lecture and tells you
+            exactly how many classes you need to make the cut.
+          </Text>
+        </View>
+
+        <View
+          style={{
+            marginTop: 40,
+            flexDirection: isDesktop ? "row" : "column",
+            alignItems: "stretch",
+            justifyContent: "space-between",
+            gap: 24,
+          }}
+        >
+          {/* Attendance Check-in */}
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: "#FFFFFF",
+              borderRadius: 24,
+              padding: 24,
+              borderWidth: 1,
+              borderColor: "#E2E8F0",
+              alignItems: "center",
+            }}
+          >
+            <PhoneScreenshotFrame
+              source={screenCheckIn}
+              width={chapterThreeUpWidth}
+              tag="Post-class prompt"
+              title="“Did you attend Operating Systems?”"
+              subtitle="10 minutes after lecture ends, tap Attended or Missed—or add an assignment announced in class."
+            />
+          </View>
+
+          {/* Semester Reports & 75% Math */}
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: "#FFFFFF",
+              borderRadius: 24,
+              padding: 24,
+              borderWidth: 1,
+              borderColor: "#E2E8F0",
+              alignItems: "center",
+            }}
+          >
+            <PhoneScreenshotFrame
+              source={screenReports}
+              width={chapterThreeUpWidth}
+              tag="Semester reports"
+              title="“Attend 5 of the remaining 6 classes to finish at 75%”"
+              subtitle="Course-by-course attendance bars flag danger early so you can recover before exams."
+              accentColor="#B91C1C"
+              accentBg="#FEE2E2"
+            />
+          </View>
+
+          {/* Group Assignment Poll */}
+          <View
+            style={{
+              flex: 1,
+              backgroundColor: "#FFFFFF",
+              borderRadius: 24,
+              padding: 24,
+              borderWidth: 1,
+              borderColor: "#E2E8F0",
+              alignItems: "center",
+            }}
+          >
+            <PhoneScreenshotFrame
+              source={screenGroupPoll}
+              width={chapterThreeUpWidth}
+              tag="Group assignment polls"
+              title="“Which group are you in?”"
+              subtitle="Students join open groups up to the member cap (e.g. 6 of 6) without flooding the class group chat."
+              accentColor="#4F46E5"
+              accentBg="#EEF2FF"
+            />
+          </View>
+        </View>
+      </View>
+
+      {/* ===================================================================== */}
+      {/* 7. INTERACTIVE CLASS PREVIEW & CALL TO ACTION BANNER                  */}
+      {/* ===================================================================== */}
+      <View
+        style={{
+          width: "100%",
+          paddingHorizontal: isDesktop ? 32 : 20,
+          paddingBottom: isDesktop ? 80 : 56,
+        }}
+      >
+        <View
+          style={{
+            width: "100%",
+            maxWidth: 1136,
+            alignSelf: "center",
+            borderRadius: 28,
+            backgroundColor: "#4F46E5",
+            paddingHorizontal: isDesktop ? 56 : 24,
+            paddingVertical: isDesktop ? 56 : 36,
+            flexDirection: isDesktop ? "row" : "column",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 32,
+          }}
+        >
+          <View style={{ flex: 1, maxWidth: 580 }}>
+            <Text
+              style={{
+                color: "#E0E7FF",
+                fontSize: 13,
+                lineHeight: 18,
+                fontFamily: "Inter_600SemiBold",
+                marginBottom: 8,
+              }}
+            >
+              Try it right now · No account needed to look
+            </Text>
+            <Text
+              style={{
+                color: "#FFFFFF",
+                fontSize: isDesktop ? 34 : 26,
+                lineHeight: isDesktop ? 42 : 34,
+                fontFamily: "Inter_700Bold",
+              }}
+            >
+              Have a 6-character class code from your course rep?
+            </Text>
+            <Text
+              style={{
+                marginTop: 10,
+                color: "#E0E7FF",
+                fontSize: 16,
+                lineHeight: 24,
+                fontFamily: "Inter_400Regular",
+              }}
+            >
+              Enter a share code below to preview the live class timetable in your browser, or
+              create your free student account in under a minute.
+            </Text>
+
+            {/* Sample Class Code Chips */}
+            <View
+              style={{
+                marginTop: 18,
+                flexDirection: "row",
+                flexWrap: "wrap",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <Text
+                style={{
+                  color: "#C7D2FE",
+                  fontSize: 13,
+                  lineHeight: 18,
+                  fontFamily: "Inter_500Medium",
+                }}
+              >
+                Sample classes:
+              </Text>
+              {["CSC3X9", "CSC200", "ECO300"].map((sampleCode) => (
+                <Pressable
+                  key={sampleCode}
+                  onPress={() => {
+                    setShareCodeInput(sampleCode);
+                    handlePreviewCode(sampleCode);
+                  }}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 5,
+                    borderRadius: 999,
+                    backgroundColor: "rgba(255, 255, 255, 0.16)",
+                    borderWidth: 1,
+                    borderColor: "rgba(255, 255, 255, 0.28)",
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: "#FFFFFF",
+                      fontSize: 13,
+                      lineHeight: 18,
+                      fontFamily: "Inter_700Bold",
+                      letterSpacing: 1,
+                    }}
+                  >
+                    {sampleCode}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+
+          {/* Code Input Card */}
+          <View
+            style={{
+              width: isDesktop ? 380 : "100%",
+              backgroundColor: "#FFFFFF",
+              borderRadius: 20,
+              padding: 20,
+              shadowColor: "#0F172A",
+              shadowOffset: { width: 0, height: 16 },
+              shadowOpacity: 0.2,
+              shadowRadius: 28,
+            }}
+          >
+            <Text
+              style={{
+                color: "#0F172A",
+                fontSize: 14,
+                lineHeight: 20,
+                fontFamily: "Inter_600SemiBold",
+                marginBottom: 8,
+              }}
+            >
+              Enter class share code
+            </Text>
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <TextInput
+                value={shareCodeInput}
+                onChangeText={(text) => setShareCodeInput(text.toUpperCase())}
+                placeholder="CSC3X9"
+                placeholderTextColor="#94A3B8"
+                maxLength={8}
+                autoCapitalize="characters"
+                style={{
+                  flex: 1,
+                  height: 48,
+                  borderRadius: 12,
+                  borderWidth: 1.5,
+                  borderColor: "#CBD5E1",
+                  backgroundColor: "#F8FAFC",
+                  paddingHorizontal: 14,
+                  color: "#0F172A",
+                  fontSize: 18,
+                  fontFamily: "Inter_700Bold",
+                  letterSpacing: 2,
+                }}
+              />
+              <Pressable
+                onPress={() => handlePreviewCode()}
+                style={{
+                  height: 48,
+                  paddingHorizontal: 18,
+                  borderRadius: 12,
+                  backgroundColor: "#0F172A",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Text
+                  style={{
+                    color: "#FFFFFF",
+                    fontSize: 14,
+                    lineHeight: 20,
+                    fontFamily: "Inter_600SemiBold",
+                  }}
+                >
+                  Preview
+                </Text>
+              </Pressable>
+            </View>
+
+            <View
+              style={{
+                height: 1,
+                backgroundColor: "#E2E8F0",
+                marginVertical: 16,
+              }}
+            />
 
             <Pressable
-              onPress={() => router.push("/setup/welcome?mode=signin" as any)}
-              accessibilityRole="link"
+              onPress={() => router.push("/setup/welcome?mode=signup" as any)}
+              style={{
+                width: "100%",
+                paddingVertical: 12,
+                borderRadius: 12,
+                backgroundColor: "#EEF2FF",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
             >
-              <Text variant="label" style={{ color: "#94A3B8" }}>
-                Student Sign In
+              <Text
+                style={{
+                  color: "#4F46E5",
+                  fontSize: 14,
+                  lineHeight: 20,
+                  fontFamily: "Inter_600SemiBold",
+                }}
+              >
+                Or create a new shared class for your level →
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+
+      {/* ===================================================================== */}
+      {/* 8. COMPLIANT PRODUCT FOOTER (GOOGLE OAUTH & APP STORE VERIFIED)       */}
+      {/* ===================================================================== */}
+      <View
+        style={{
+          width: "100%",
+          backgroundColor: "#FFFFFF",
+          borderTopWidth: 1,
+          borderTopColor: "#E2E8F0",
+        }}
+      >
+        <View
+          style={{
+            width: "100%",
+            maxWidth: 1200,
+            alignSelf: "center",
+            paddingHorizontal: isDesktop ? 32 : 20,
+            paddingVertical: 40,
+            flexDirection: isTablet ? "row" : "column",
+            alignItems: isTablet ? "center" : "flex-start",
+            justifyContent: "space-between",
+            gap: 24,
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <View
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: 9,
+                backgroundColor: "#0F172A",
+                alignItems: "center",
+                justifyContent: "center",
+                overflow: "hidden",
+              }}
+            >
+              <Image
+                source={brandLogo}
+                style={{ width: 34, height: 34 }}
+                resizeMode="contain"
+                accessibilityLabel="TT: Student Timetable logo"
+              />
+            </View>
+            <View>
+              <Text
+                style={{
+                  color: "#0F172A",
+                  fontSize: 15,
+                  lineHeight: 20,
+                  fontFamily: "Inter_700Bold",
+                }}
+              >
+                TT: Student Timetable
+              </Text>
+              <Text
+                style={{
+                  color: "#64748B",
+                  fontSize: 12,
+                  lineHeight: 16,
+                  fontFamily: "Inter_400Regular",
+                }}
+              >
+                © {new Date().getFullYear()} EasyPass Software Solutions · NDPA 2023 compliant
+              </Text>
+            </View>
+          </View>
+
+          <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 20 }}>
+            <Pressable onPress={() => Linking.openURL(APP_STORE_SEARCH_URL)}>
+              <Text
+                style={{
+                  color: "#334155",
+                  fontSize: 14,
+                  lineHeight: 20,
+                  fontFamily: "Inter_500Medium",
+                }}
+              >
+                iOS App Store
+              </Text>
+            </Pressable>
+
+            <Pressable onPress={() => handlePreviewCode("CSC3X9")}>
+              <Text
+                style={{
+                  color: "#334155",
+                  fontSize: 14,
+                  lineHeight: 20,
+                  fontFamily: "Inter_500Medium",
+                }}
+              >
+                Preview Class (CSC3X9)
+              </Text>
+            </Pressable>
+
+            <Pressable onPress={() => router.push("/setup/welcome?mode=signin" as any)}>
+              <Text
+                style={{
+                  color: "#334155",
+                  fontSize: 14,
+                  lineHeight: 20,
+                  fontFamily: "Inter_500Medium",
+                }}
+              >
+                Sign in
+              </Text>
+            </Pressable>
+
+            <Pressable onPress={() => router.push("/setup/welcome?mode=signup" as any)}>
+              <Text
+                style={{
+                  color: "#334155",
+                  fontSize: 14,
+                  lineHeight: 20,
+                  fontFamily: "Inter_500Medium",
+                }}
+              >
+                Create account
+              </Text>
+            </Pressable>
+
+            <Pressable onPress={() => router.push("/privacy" as any)}>
+              <Text
+                style={{
+                  color: "#4F46E5",
+                  fontSize: 14,
+                  lineHeight: 20,
+                  fontFamily: "Inter_600SemiBold",
+                }}
+              >
+                Privacy Policy
               </Text>
             </Pressable>
           </View>
