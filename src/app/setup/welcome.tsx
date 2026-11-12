@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View, ScrollView, Pressable, TextInput } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -19,6 +19,9 @@ export default function WelcomeScreen() {
   const isDark = resolvedTheme === "dark";
   const {
     user,
+    isLoaded,
+    isSignedIn,
+    hasCompletedOnboarding,
     signInWithEmail,
     signUpWithEmail,
     verifyEmailCode,
@@ -46,6 +49,14 @@ export default function WelcomeScreen() {
       setNextDestination(params.next);
     }
   }
+
+  // If OAuth deep-links back to /setup/welcome after signing in a new user, advance directly to /setup/profile
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (isSignedIn && !hasCompletedOnboarding && mode !== "restoring") {
+      router.replace(`/setup/profile?next=${encodeURIComponent(nextDestination)}` as any);
+    }
+  }, [hasCompletedOnboarding, isLoaded, isSignedIn, mode, nextDestination, router]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [verificationCode, setVerificationCode] = useState("");

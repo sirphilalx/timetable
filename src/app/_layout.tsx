@@ -114,6 +114,7 @@ function RootNavigation() {
         <Stack.Screen name="check-ins/pending" options={{ headerShown: false }} />
         <Stack.Screen name="class-settings/index" options={{ headerShown: false }} />
         <Stack.Screen name="setup/welcome" options={{ headerShown: false }} />
+        <Stack.Screen name="welcome" options={{ headerShown: false }} />
         <Stack.Screen name="oauth-native-callback" options={{ headerShown: false }} />
         <Stack.Screen name="setup/profile" options={{ headerShown: false }} />
         <Stack.Screen name="setup/semester" options={{ headerShown: false }} />

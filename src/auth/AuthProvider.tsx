@@ -825,7 +825,8 @@ function InnerAuthCore({
       // 1. If no manual account override was passed and Clerk SSO is available, launch real Clerk OAuth browser flow!
       if (!hasManualAccount && clerkSdk?.startSSOFlow && Platform.OS !== "web") {
         try {
-          const redirectUrl = Linking.createURL("oauth-native-callback", { scheme: "tt" });
+          // Matches the exact whitelisted mobile OAuth redirect URI in Clerk Dashboard
+          const redirectUrl = "tt://setup/welcome";
           const { createdSessionId, setActive, signIn, signUp, authSessionResult } =
             await clerkSdk.startSSOFlow({
               strategy: provider,
@@ -838,18 +839,20 @@ function InnerAuthCore({
 
           let finalSessionId: string | null = createdSessionId ?? null;
           let isNewSignUp = account?.intent === "signup";
+          let activeSignUp = signUp;
+          let activeSignIn = signIn;
 
-          // Step A: Handle transferable sign-in -> sign-up (new user tapped Google/Apple on Sign In)
+          // Step A: Handle transferable sign-in -> sign-up (new user tapped Google/Apple)
           if (
             !finalSessionId &&
-            signUp &&
-            signIn?.firstFactorVerification?.status === "transferable"
+            activeSignUp &&
+            activeSignIn?.firstFactorVerification?.status === "transferable"
           ) {
             try {
-              const createdUp = await signUp.create({ transfer: true });
+              activeSignUp = await activeSignUp.create({ transfer: true });
               isNewSignUp = true;
-              if (createdUp.status === "complete" && createdUp.createdSessionId) {
-                finalSessionId = createdUp.createdSessionId;
+              if (activeSignUp.status === "complete" && activeSignUp.createdSessionId) {
+                finalSessionId = activeSignUp.createdSessionId;
               }
             } catch {
               // Continue to missing_requirements check below
@@ -859,79 +862,95 @@ function InnerAuthCore({
           // Step B: Handle transferable sign-up -> sign-in (existing user tapped Google/Apple on Create Account)
           if (
             !finalSessionId &&
-            signIn &&
-            signUp?.verifications?.externalAccount?.status === "transferable"
+            activeSignIn &&
+            activeSignUp?.verifications?.externalAccount?.status === "transferable"
           ) {
             try {
-              const createdIn = await signIn.create({ transfer: true });
+              activeSignIn = await activeSignIn.create({ transfer: true });
               if (account?.intent !== "signup") {
                 isNewSignUp = false;
               }
-              if (createdIn.status === "complete" && createdIn.createdSessionId) {
-                finalSessionId = createdIn.createdSessionId;
+              if (activeSignIn.status === "complete" && activeSignIn.createdSessionId) {
+                finalSessionId = activeSignIn.createdSessionId;
               }
             } catch {
               // Continue to fallback check below
             }
           }
 
-          // Step C: Fulfill missing sign-up requirements (e.g. Clerk requires username, first_name, or last_name)
+          // Step C: Fulfill any missing sign-up requirements (e.g. Clerk requires password, first_name, last_name, or username)
           if (
             !finalSessionId &&
-            signUp &&
-            (signUp.status === "missing_requirements" || (signUp.missingFields?.length ?? 0) > 0)
+            activeSignUp &&
+            (activeSignUp.status === "missing_requirements" ||
+              (activeSignUp.missingFields?.length ?? 0) > 0)
           ) {
             isNewSignUp = true;
-            const missing = signUp.missingFields ?? [];
+            const missing = activeSignUp.missingFields ?? [];
             const candidateEmail =
-              signUp.emailAddress || signIn?.identifier || user.email || "student@tt.app";
-            const candidateFirst = signUp.firstName || "Student";
-            const candidateLast = signUp.lastName || "User";
+              activeSignUp.emailAddress ||
+              activeSignIn?.identifier ||
+              user.email ||
+              "student@tt.app";
+            const candidateFirst = activeSignUp.firstName || "Student";
+            const candidateLast = activeSignUp.lastName || "User";
             const candidateFullName =
-              [signUp.firstName, signUp.lastName].filter(Boolean).join(" ").trim() || "Student";
+              [activeSignUp.firstName, activeSignUp.lastName].filter(Boolean).join(" ").trim() ||
+              "Student";
             const baseHandle =
-              signUp.username ||
+              activeSignUp.username ||
               (suggestUsernames(candidateFullName, candidateEmail)[0] ?? "student_tt");
             const suffix = String(Math.floor(100 + Math.random() * 900));
 
             const updatePayload: Record<string, unknown> = {};
-            if (missing.includes("username") || !signUp.username) {
+            if (missing.includes("password")) {
+              // Clerk instance has password required (min_length: 15); generate a strong 24-char password for OAuth sign-ups
+              const randA = Math.random().toString(36).slice(2, 10);
+              const randB = Math.random().toString(36).slice(2, 10);
+              updatePayload.password = `Tt!9_${randA}#${randB}_26A`;
+            }
+            if (missing.includes("username")) {
               updatePayload.username = normalizeUsername(`${baseHandle}_${suffix}`);
             }
-            if (missing.includes("first_name") && !signUp.firstName) {
+            if (missing.includes("first_name") && !activeSignUp.firstName) {
               updatePayload.firstName = candidateFirst;
             }
-            if (missing.includes("last_name") && !signUp.lastName) {
+            if (missing.includes("last_name") && !activeSignUp.lastName) {
               updatePayload.lastName = candidateLast;
             }
             if (missing.includes("legal_accepted")) {
               updatePayload.legalAccepted = true;
             }
 
-            try {
-              const updatedUp = await signUp.update(updatePayload as any);
-              if (updatedUp.status === "complete" && updatedUp.createdSessionId) {
-                finalSessionId = updatedUp.createdSessionId;
-              }
-            } catch {
+            if (Object.keys(updatePayload).length > 0) {
               try {
-                const retryUp = await signUp.update({
-                  ...updatePayload,
-                  username: `tt_student_${Math.floor(10000 + Math.random() * 90000)}`,
-                } as any);
-                if (retryUp.status === "complete" && retryUp.createdSessionId) {
-                  finalSessionId = retryUp.createdSessionId;
+                activeSignUp = await activeSignUp.update(updatePayload as any);
+                if (activeSignUp.status === "complete" && activeSignUp.createdSessionId) {
+                  finalSessionId = activeSignUp.createdSessionId;
                 }
               } catch {
-                // Handled below if finalSessionId remains null
+                if (missing.includes("username")) {
+                  try {
+                    activeSignUp = await activeSignUp.update({
+                      ...updatePayload,
+                      username: `tt_student_${Math.floor(10000 + Math.random() * 90000)}`,
+                    } as any);
+                    if (activeSignUp.status === "complete" && activeSignUp.createdSessionId) {
+                      finalSessionId = activeSignUp.createdSessionId;
+                    }
+                  } catch {
+                    // Handled below if finalSessionId remains null
+                  }
+                }
               }
             }
           }
 
           if (!finalSessionId) {
-            finalSessionId = signUp?.createdSessionId ?? signIn?.createdSessionId ?? null;
+            finalSessionId =
+              activeSignUp?.createdSessionId ?? activeSignIn?.createdSessionId ?? null;
           }
-          if (signUp?.createdUserId && !signIn?.createdSessionId) {
+          if (activeSignUp?.createdUserId && !activeSignIn?.createdSessionId) {
             isNewSignUp = true;
           }
 
@@ -939,13 +958,13 @@ function InnerAuthCore({
             await setActive({ session: finalSessionId });
             const liveJwt = await clerkSdk.getToken();
             const oauthEmail =
-              signUp?.emailAddress ||
-              signIn?.identifier ||
+              activeSignUp?.emailAddress ||
+              activeSignIn?.identifier ||
               clerkSdk.clerkUser?.primaryEmailAddress ||
               user.email ||
               "";
             const oauthName =
-              [signUp?.firstName, signUp?.lastName].filter(Boolean).join(" ").trim() ||
+              [activeSignUp?.firstName, activeSignUp?.lastName].filter(Boolean).join(" ").trim() ||
               clerkSdk.clerkUser?.fullName?.trim() ||
               (oauthEmail
                 ? oauthEmail
@@ -958,13 +977,13 @@ function InnerAuthCore({
               user.displayName ||
               "Student";
             const oauthUsername =
-              signUp?.username ||
+              activeSignUp?.username ||
               clerkSdk.clerkUser?.username ||
               user.username ||
               (suggestUsernames(oauthName, oauthEmail)[0] ?? "student_tt");
 
             const clerkUserId =
-              signUp?.createdUserId ??
+              activeSignUp?.createdUserId ??
               clerkSdk.clerkUser?.id ??
               `user_${provider}_${finalSessionId}`;
             const { studentId: scopedStudentId } = deriveAccountIds(clerkUserId, oauthEmail);
